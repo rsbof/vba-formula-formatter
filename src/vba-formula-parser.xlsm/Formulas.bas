@@ -48,10 +48,10 @@ Private Function Tokenize(str As String) As Collection
                 i = i + 1
             Case IsNumeric(c)
                 start = i
-                Do While IsNumeric(Mid(str, i, 1))
+                Do
                     i = i + 1
-                Loop
-                toks.Add NewToken(TK_NUM, Mid(str, start, i - start), i)
+                Loop While IsNumeric(Mid(str, i, 1))
+                toks.Add NewToken(TK_NUM, Mid(str, start, i - start), start)
             Case c = "+" Or c = "-" Or c = "*" Or c = "/"
                 toks.Add NewToken(TK_PUNCT, c, i)
                 i = i + 1
@@ -61,12 +61,15 @@ Private Function Tokenize(str As String) As Collection
             Case c = ","
                 toks.Add NewToken(TK_PUNCT, c, i)
                 i = i + 1
+            Case c = "."
+                toks.Add NewToken(TK_PUNCT, c, i)
+                i = i + 1
             Case IsIdent(c)
                 start = i
-                Do While IsIdent(Mid(str, i, 1))
+                Do
                     i = i + 1
-                Loop
-                toks.Add NewToken(TK_IDENT, Mid(str, start, i - start), i)
+                Loop While IsIdent(Mid(str, i, 1))
+                toks.Add NewToken(TK_IDENT, Mid(str, start, i - start), start)
             Case Else
                 Call ErrorAt(Mid(str, i), "unexpected token")
         End Select
@@ -79,6 +82,10 @@ Private Function NewToken(kind As Long, val As String, col As Long) As Variant()
 End Function
 
 Private Function IsIdent(c As String) As Boolean
+    If c = "" Then
+        IsIdent = False
+        Exit Function
+    End If
     Dim dec As Long
     dec = Asc(c)
     IsIdent = (97 <= dec And dec <= 122) Or (65 <= dec And dec <= 90)
