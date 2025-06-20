@@ -15,6 +15,7 @@ Private Enum NodeKind
     ND_SUB
     ND_MUL
     ND_DIV
+    ND_IDENT
 End Enum
 
 Static Property Get TokenKindMap() As Dictionary
@@ -31,6 +32,7 @@ Static Property Get NodeKindMap() As Dictionary
     NodeKindMap.Add ND_SUB, "ND_SUB"
     NodeKindMap.Add ND_MUL, "ND_MUL"
     NodeKindMap.Add ND_DIV, "ND_DIV"
+    NodeKindMap.Add ND_IDENT, "ND_IDENT"
 End Property
 
 Private Function Tokenize(str As String) As Collection
@@ -115,6 +117,11 @@ Private Function NewNum(val As Long) As Dictionary
     NewNum.Add "val", val
 End Function
 
+Private Function NewIdent(val As String) As Dictionary
+    Set NewIdent = NewNode(ND_IDENT)
+    NewIdent.Add "val", val
+End Function
+
 Private Function Consume(toks As Collection, prefix As String) As Boolean
     If pos_ > toks.Count Then
         Exit Function
@@ -189,7 +196,7 @@ Private Function Mul(toks As Collection) As Dictionary
     Loop
 End Function
 
-' <primary> ::= <num> | "(" <expr> ")"
+' <primary> ::= <num> | <ident> | "(" <expr> ")"
 Private Function Primary(toks As Collection) As Dictionary
     If Consume(toks, "(") Then
         Dim node As Dictionary
@@ -199,7 +206,22 @@ Private Function Primary(toks As Collection) As Dictionary
         Exit Function
     End If
 
-    Set Primary = ExpectNumber(toks)
+    Dim t() As Variant
+    t = toks(pos_)
+
+    If t(0) = TK_NUM Then
+        Set Primary = NewNum(CLng(t(1)))
+        pos_ = pos_ + 1
+        Exit Function
+    End If
+
+    If t(0) = TK_IDENT Then
+        Set Primary = NewIdent(CStr(t(1)))
+        pos_ = pos_ + 1
+        Exit Function
+    End If
+
+    Call ErrorAt2(toks, "expected a number or an ident or an expression")
 End Function
 
 Private Function ExpectNumber(toks As Collection) As Dictionary
@@ -241,6 +263,7 @@ Sub TestParse()
         "1+2*3", _
         "(1+2)*3", _
         "x+y*z", _
+        "(ab+cd)*ef", _
         "" _
     )
     Dim t As Variant
@@ -267,7 +290,7 @@ Private Sub DumpNode(node As Dictionary, indentLevel As Long)
     indent = String(indentLevel * 2, " ")
     prefix = indentLevel & " " & indent
     Select Case k
-        Case ND_NUM
+        Case ND_NUM, ND_IDENT
             Debug.Print prefix & "kind: " & NodeKindMap(k)
             Debug.Print prefix & "val: " & node("val")
         Case ND_ADD, ND_SUB, ND_MUL, ND_DIV
