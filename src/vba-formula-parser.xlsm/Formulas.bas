@@ -93,6 +93,18 @@ Private Function IsIdent(c As String) As Boolean
     IsIdent = (97 <= dec And dec <= 122) Or (65 <= dec And dec <= 90)
 End Function
 
+Private Sub ErrorAt(rest As String, msg As String)
+    Dim pos As Long
+    pos = Len(input_) - Len(rest)
+    Dim prefix As String
+    prefix = String(4, " ")
+    Debug.Print "error:"
+    Debug.Print prefix & input_
+    Debug.Print prefix & String(pos, " ") & "^ " & msg
+    Debug.Print
+    End
+End Sub
+
 Public Function Parse(str As String) As Dictionary
     Dim toks As Collection
     Set toks = Tokenize(str)
@@ -138,18 +150,6 @@ Private Sub Expect(toks As Collection, prefix As String)
     If Not Consume(toks, prefix) Then
         Call ErrorAt2(toks, "expected " & "'" & prefix & "'")
     End If
-End Sub
-
-Private Sub ErrorAt(rest As String, msg As String)
-    Dim pos As Long
-    pos = Len(input_) - Len(rest)
-    Dim prefix As String
-    prefix = String(4, " ")
-    Debug.Print "error:"
-    Debug.Print prefix & input_
-    Debug.Print prefix & String(pos, " ") & "^ " & msg
-    Debug.Print
-    End
 End Sub
 
 Private Sub ErrorAt2(toks As Collection, msg As String)
@@ -228,16 +228,6 @@ Private Function Primary(toks As Collection) As Dictionary
     End If
 
     Call ErrorAt2(toks, "expected a number or an ident or an expression")
-End Function
-
-Private Function ExpectNumber(toks As Collection) As Dictionary
-    Dim t() As Variant
-    t = toks(pos_)
-    If t(0) <> TK_NUM Then
-        Call ErrorAt2(toks, "expected a number")
-    End If
-    pos_ = pos_ + 1
-    Set ExpectNumber = NewNum(CLng(t(1)))
 End Function
 
 Public Function Pretty(node As Dictionary) As String
