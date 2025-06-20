@@ -186,20 +186,31 @@ Private Function Expr(toks As Collection) As Dictionary
     Loop
 End Function
 
-' <mul>     ::= <primary> ("*" <primary> | "/" <primary>)*
+' <mul>     ::= <unary> ("*" <unary> | "/" <unary>)*
 Private Function Mul(toks As Collection) As Dictionary
     Dim node As Dictionary
-    Set node = Primary(toks)
+    Set node = Unary(toks)
     Do
         If Consume(toks, "*") Then
-            Set node = NewBinary(ND_MUL, node, Primary(toks))
+            Set node = NewBinary(ND_MUL, node, Unary(toks))
         ElseIf Consume(toks, "/") Then
-            Set node = NewBinary(ND_DIV, node, Primary(toks))
+            Set node = NewBinary(ND_DIV, node, Unary(toks))
         Else
             Set Mul = node
             Exit Function
         End If
     Loop
+End Function
+
+' <unary>   ::= ("+" | "-")? <primary>
+Private Function Unary(toks As Collection) As Dictionary
+    If Consume(toks, "+") Then
+        Set Unary = Primary(toks)
+    ElseIf Consume(toks, "-") Then
+        Set Unary = NewBinary(ND_SUB, NewNum(0), Primary(toks))
+    Else
+        Set Unary = Primary(toks)
+    End If
 End Function
 
 ' <primary> ::= <num> | <ident> | "(" <expr> ")"
@@ -261,6 +272,7 @@ Sub TestParse()
         "(1+2)*3", _
         "x+y*z", _
         "(ab+cd)*ef", _
+        "+12*-3/+xyz", _
         "" _
     )
     Dim t As Variant
