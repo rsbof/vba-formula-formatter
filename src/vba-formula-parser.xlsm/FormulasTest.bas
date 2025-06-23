@@ -82,6 +82,23 @@ Sub TestParse()
     Next t
 End Sub
 
+Sub TestPretty()
+    Dim tests As Variant
+    tests = Array( _
+        "(ab+cd)*3", _
+        "(((((1=2)<>3)<4)<=5)>6)>=7", _
+        "" _
+    )
+    Dim t As Variant
+    For Each t In tests
+        If CStr(t) <> "" Then
+            Debug.Print t
+            Debug.Print Formulas.Pretty(Formulas.Parse(CStr(t)), 2)
+            Debug.Print
+        End If
+    Next t
+End Sub
+
 Private Function Token(kind As TokenKind, val As String, col As Long) As Variant()
     Token = Array(kind, val, col)
 End Function

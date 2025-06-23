@@ -24,6 +24,8 @@ Public Enum NodeKind
     ND_GE
 End Enum
 
+Private Const BUF_MAX As Long = 8096
+
 Static Property Get TokenKindMap() As Dictionary
     Set TokenKindMap = New Dictionary
     TokenKindMap.Add TK_NUM, "TK_NUM"
@@ -45,6 +47,20 @@ Static Property Get NodeKindMap() As Dictionary
     NodeKindMap.Add ND_LE, "ND_LE"
     NodeKindMap.Add ND_GT, "ND_GT"
     NodeKindMap.Add ND_GE, "ND_GE"
+End Property
+
+Static Property Get OperatorMap() As Dictionary
+    Set OperatorMap = New Dictionary
+    OperatorMap.Add ND_ADD, "+"
+    OperatorMap.Add ND_SUB, "-"
+    OperatorMap.Add ND_MUL, "*"
+    OperatorMap.Add ND_DIV, "/"
+    OperatorMap.Add ND_EQ, "="
+    OperatorMap.Add ND_NE, "<>"
+    OperatorMap.Add ND_LT, "<"
+    OperatorMap.Add ND_LE, "<="
+    OperatorMap.Add ND_GT, ">"
+    OperatorMap.Add ND_GE, ">="
 End Property
 
 Public Function Tokenize(str As String) As Collection
@@ -314,6 +330,63 @@ Private Function Primary(toks As Collection) As Dictionary
     Call ErrorAt2(toks, "expected a number or an ident or an expression")
 End Function
 
-Public Function Pretty(node As Dictionary) As String
+Public Function Pretty(node As Dictionary, indentLength As Long, Optional indentLevel As Long = 0) As String
+    Dim buf As String
+    Dim pos As Long
+    Dim indent As String
+    buf = String(256, vbNullChar)
+    pos = 1
+    indent = Space(indentLevel * indentLength)
+    Dim k As NodeKind
+    Dim v As Variant
+    k = node("kind")
+    Select Case k
+        Case ND_NUM, ND_IDENT
+            Call PushString(buf, pos, node("val"))
+        Case ND_ADD, ND_SUB, ND_MUL, ND_DIV, _
+             ND_EQ, ND_NE, ND_LT, ND_LE, ND_GT, ND_GE
+            If node("enclosed") Then
+                Call PushString(buf, pos, "(")
+                Call PushString(buf, pos, vbCrLf)
+                Call PushString(buf, pos, indent)
+                Call PushString(buf, pos, Pretty(node("lhs"), indentLength, indentLevel + 1))
+                Call PushString(buf, pos, " ")
+                Call PushString(buf, pos, OperatorMap(k))
+                Call PushString(buf, pos, " ")
+                Call PushString(buf, pos, Pretty(node("rhs"), indentLength, indentLevel + 1))
+                Call PushString(buf, pos, vbCrLf)
+                Call PushString(buf, pos, String((indentLevel - 1) * indentLength, " "))
+                Call PushString(buf, pos, ")")
+            Else
+                Call PushString(buf, pos, Pretty(node("lhs"), indentLength, indentLevel + 1))
+                Call PushString(buf, pos, " ")
+                Call PushString(buf, pos, OperatorMap(k))
+                Call PushString(buf, pos, " ")
+                Call PushString(buf, pos, Pretty(node("rhs"), indentLength, indentLevel + 1))
+            End If
+        Case Else
+    End Select
 
+    Pretty = Mid(buf, 1, pos - 1)
 End Function
+
+Private Sub PushString(ByRef buf As String, start As Long, val As String)
+    Do While (Len(buf) - start) + 1 < Len(val)
+        Call DoubleBuffer(buf)
+    Loop
+    Mid(buf, start) = val
+    start = start + Len(val)
+End Sub
+
+Private Sub DoubleBuffer(ByRef buf As String)
+    Dim curLen As Long
+    curLen = Len(buf)
+    If curLen * 2 > BUF_MAX Then
+        Debug.Print "error: The buffer has reached its maximum allowed size of " & BUF_MAX & " characters."
+        End
+    End If
+    Dim newBuf As String
+    newBuf = String(curLen * 2, vbNullChar)
+    Mid(newBuf, 1) = buf
+    buf = newBuf
+End Sub
