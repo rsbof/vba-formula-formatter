@@ -291,6 +291,7 @@ Private Function Primary(toks As Collection) As Dictionary
         Dim node As Dictionary
         Set node = Expr(toks)
         Call Expect(toks, ")")
+        node("enclosed") = True
         Set Primary = node
         Exit Function
     End If

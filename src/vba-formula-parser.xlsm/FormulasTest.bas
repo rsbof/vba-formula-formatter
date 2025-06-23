@@ -66,6 +66,9 @@ Private Sub DumpNode(node As Dictionary, indentLevel As Long)
     Dim prefix As String
     indent = String(indentLevel * 2, " ")
     prefix = indentLevel & " " & indent
+    If node.Exists("enclosed") Then
+        Debug.Print prefix & "- " & "enclosed: " & node("enclosed")
+    End If
     Select Case k
         Case Formulas.NodeKind.ND_NUM, Formulas.NodeKind.ND_IDENT
             Debug.Print prefix & "- " & "kind: " & NodeKindMap(k)
