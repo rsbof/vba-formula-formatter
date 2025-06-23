@@ -20,13 +20,13 @@ Sub TestTokenize()
         "test tokenize simple function call", _
         "SUM(12)", _
         Stringify(Array( _
-            Token(TK_IDENT, "SUM", 1), Token(TK_PUNCT, "(", 4), Token(TK_NUM, "12", 5), Token(TK_PUNCT, ")", 7) _
+            Token(TK_FUNCNAME, "SUM", 1), Token(TK_PUNCT, "(", 4), Token(TK_NUM, "12", 5), Token(TK_PUNCT, ")", 7) _
         )))
     tests.Add Array( _
         "test tokenize multi-arg function call", _
         "SUM(12, 34)", _
         Stringify(Array( _
-            Token(TK_IDENT, "SUM", 1), Token(TK_PUNCT, "(", 4), _
+            Token(TK_FUNCNAME, "SUM", 1), Token(TK_PUNCT, "(", 4), _
             Token(TK_NUM, "12", 5), Token(TK_PUNCT, ",", 7), Token(TK_NUM, "34", 9), _
             Token(TK_PUNCT, ")", 11) _
         )))
@@ -40,6 +40,18 @@ Sub TestTokenize()
             Token(TK_PUNCT, "<=", 9), Token(TK_NUM, "5", 11), _
             Token(TK_PUNCT, ">", 12), Token(TK_NUM, "6", 13), _
             Token(TK_PUNCT, ">=", 14), Token(TK_NUM, "7", 16) _
+        )))
+    tests.Add Array( _
+        "test tokenize nested function call", _
+        "SUM(MIN(1, MAX(3, NOW())))", _
+        Stringify(Array( _
+            Token(TK_FUNCNAME, "SUM", 1), Token(TK_PUNCT, "(", 4), _
+                Token(TK_FUNCNAME, "MIN", 5), Token(TK_PUNCT, "(", 8), Token(TK_NUM, "1", 9), Token(TK_PUNCT, ",", 10), _
+                    Token(TK_FUNCNAME, "MAX", 12), Token(TK_PUNCT, "(", 15), Token(TK_NUM, "3", 16), Token(TK_PUNCT, ",", 17), _
+                        Token(TK_FUNCNAME, "NOW", 19), Token(TK_PUNCT, "(", 22), Token(TK_PUNCT, ")", 23), _
+                    Token(TK_PUNCT, ")", 24), _
+                Token(TK_PUNCT, ")", 25), _
+            Token(TK_PUNCT, ")", 26) _
         )))
     Dim t As Variant
     For Each t In tests
@@ -71,6 +83,9 @@ Sub TestParse()
         "+12*-3/+xyz", _
         "1=2<>3<4<=5>6>=7", _
         "(((((1=2)<>3)<4)<=5)>6)>=7", _
+        "SUM(1,2)", _
+        "SUM.1(MIN(a))", _
+        "IF(AND(1=1,MIN(x)=MAX(y)),NOW(),DATE(1990,1,1))", _
         "" _
     )
     Dim t As Variant
@@ -145,6 +160,14 @@ Private Sub DumpNode(node As Dictionary, indentLevel As Long)
             Call DumpNode(node("lhs"), indentLevel + 1)
             Debug.Print prefix & "rhs:"
             Call DumpNode(node("rhs"), indentLevel + 1)
+        Case Formulas.NodeKind.ND_FUNC
+            Debug.Print prefix & "- " & "kind: " & NodeKindMap(k)
+            Debug.Print prefix & "- " & "name: " & node("name")
+            Debug.Print prefix & "- " & "args:"
+            Dim x As Dictionary
+            For Each x In node("args")
+                Call DumpNode(x, indentLevel + 1)
+            Next x
     End Select
     If indentLevel = 0 Then
         Debug.Print

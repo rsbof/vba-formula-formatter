@@ -6,6 +6,7 @@ Public Enum TokenKind
     TK_NUM
     TK_PUNCT
     TK_IDENT
+    TK_FUNCNAME
 End Enum
 
 Private pos_ As Long
@@ -22,6 +23,7 @@ Public Enum NodeKind
     ND_LE
     ND_GT
     ND_GE
+    ND_FUNC
 End Enum
 
 Private Const BUF_MAX As Long = 8096
@@ -31,6 +33,7 @@ Static Property Get TokenKindMap() As Dictionary
     TokenKindMap.Add TK_NUM, "TK_NUM"
     TokenKindMap.Add TK_PUNCT, "TK_PUNCT"
     TokenKindMap.Add TK_IDENT, "TK_IDENT"
+    TokenKindMap.Add TK_FUNCNAME, "TK_FUNCNAME"
 End Property
 
 Static Property Get NodeKindMap() As Dictionary
@@ -47,6 +50,7 @@ Static Property Get NodeKindMap() As Dictionary
     NodeKindMap.Add ND_LE, "ND_LE"
     NodeKindMap.Add ND_GT, "ND_GT"
     NodeKindMap.Add ND_GE, "ND_GE"
+    NodeKindMap.Add ND_FUNC, "ND_FUNC"
 End Property
 
 Static Property Get OperatorMap() As Dictionary
@@ -95,11 +99,37 @@ Public Function Tokenize(str As String) As Collection
                 toks.Add NewToken(TK_PUNCT, c, i)
                 i = i + 1
             Case IsIdent(c)
+                Dim expectFuncName As Boolean
+                Dim cur As String
                 start = i
                 Do
                     i = i + 1
-                Loop While IsIdent(Mid(str, i, 1))
-                toks.Add NewToken(TK_IDENT, Mid(str, start, i - start), start)
+                    cur = Mid(str, i, 1)
+                    Select Case True
+                        Case IsIdent(cur)
+                        Case cur = "."
+                            expectFuncName = True
+                        Case IsNumeric(cur)
+                        Case Else
+                            Exit Do
+                    End Select
+                Loop
+                If expectFuncName Then
+                    If Mid(str, i, 1) <> "(" Then
+                        Call ErrorAt(str, "expected '('")
+                    End If
+                    toks.Add NewToken(TK_FUNCNAME, Mid(str, start, i - start), start)
+                Else
+                    If IsNumeric(Mid(str, i - 1, 1)) Then
+                        Call ErrorAt(str, "expected a char")
+                    End If
+                    If Mid(str, i, 1) = "(" Then
+                        toks.Add NewToken(TK_FUNCNAME, Mid(str, start, i - start), start)
+                    Else
+                        toks.Add NewToken(TK_IDENT, Mid(str, start, i - start), start)
+                    End If
+                End If
+                expectFuncName = False
             Case c = "="
                 toks.Add NewToken(TK_PUNCT, c, i)
                 i = i + 1
@@ -179,6 +209,12 @@ End Function
 Private Function NewIdent(val As String) As Dictionary
     Set NewIdent = NewNode(ND_IDENT)
     NewIdent.Add "val", val
+End Function
+
+Private Function NewFunc(name_ As String, args_ As Collection) As Dictionary
+    Set NewFunc = NewNode(ND_FUNC)
+    NewFunc.Add "name", name_
+    NewFunc.Add "args", args_
 End Function
 
 Private Function Consume(toks As Collection, prefix As String) As Boolean
@@ -301,7 +337,7 @@ Private Function Unary(toks As Collection) As Dictionary
     End If
 End Function
 
-' <primary> ::= <num> | <ident> | "(" <expr> ")"
+' <primary> ::= <num> | <ident> | <funcname> "(" <args>? ")" | "(" <expr> ")"
 Private Function Primary(toks As Collection) As Dictionary
     If Consume(toks, "(") Then
         Dim node As Dictionary
@@ -327,7 +363,33 @@ Private Function Primary(toks As Collection) As Dictionary
         Exit Function
     End If
 
+    If t(0) = TK_FUNCNAME Then
+        pos_ = pos_ + 1
+        Call Expect(toks, "(")
+        Dim args_ As Collection
+        If Consume(toks, ")") Then
+            Set args_ = New Collection
+        Else
+            Set args_ = Args(toks)
+            Call Expect(toks, ")")
+        End If
+        Set Primary = NewFunc(CStr(t(1)), args_)
+        Exit Function
+    End If
+
     Call ErrorAt2(toks, "expected a number or an ident or an expression")
+End Function
+
+' <args> ::= <expr> ("," <expr>)*
+Private Function Args(toks As Collection) As Collection
+    Dim c As Collection
+    Set c = New Collection
+    c.Add Expr(toks)
+    Do While Consume(toks, ",")
+        c.Add Expr(toks)
+    Loop
+
+    Set Args = c
 End Function
 
 Public Function Pretty(node As Dictionary, indentLength As Long, Optional indentLevel As Long = 0) As String
