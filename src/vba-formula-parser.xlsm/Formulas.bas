@@ -31,6 +31,7 @@ Public Enum NodeKind
     ND_GE
     ND_FUNC
     ND_STRING
+    ND_CONCAT
 End Enum
 
 Private Type Parser
@@ -70,6 +71,7 @@ Static Property Get NodeKindMap() As Dictionary
     NodeKindMap.Add ND_GE, "ND_GE"
     NodeKindMap.Add ND_FUNC, "ND_FUNC"
     NodeKindMap.Add ND_STRING, "ND_STRING"
+    NodeKindMap.Add ND_CONCAT, "ND_CONCAT"
 End Property
 
 Static Property Get OperatorMap() As Dictionary
@@ -84,6 +86,7 @@ Static Property Get OperatorMap() As Dictionary
     OperatorMap.Add ND_LE, "<="
     OperatorMap.Add ND_GT, ">"
     OperatorMap.Add ND_GE, ">="
+    OperatorMap.Add ND_CONCAT, "&"
 End Property
 
 Public Function Tokenize(str As String) As Collection
@@ -183,6 +186,9 @@ Public Function Tokenize(str As String) As Collection
                     toks.Add NewToken(TK_PUNCT, c, i)
                     i = i + 1
                 End If
+            Case c = "&"
+                toks.Add NewToken(TK_PUNCT, "&", i)
+                i = i + 1
             Case Else
                 ErrorAt Mid(str, i), "unexpected token"
         End Select
@@ -352,10 +358,10 @@ Private Function Equality(p As Parser) As Dictionary
     Set Equality = node
 End Function
 
-' <relational> ::= <add> ("<" <add> | "<=" <add> | ">" <add> | ">=" <add>)*
+' <relational> ::= <concatenation> (("<" | "<=" | ">" | ">=") <concatenation>)*
 Private Function Relational(p As Parser) As Dictionary
     Dim node As Dictionary
-    Set node = Add(p)
+    Set node = Concatenation(p)
     Do While HasNext(p)
         If Consume(p, "<") Then
             Set node = NewBinary(ND_LT, node, Add(p))
@@ -370,6 +376,20 @@ Private Function Relational(p As Parser) As Dictionary
         End If
     Loop
     Set Relational = node
+End Function
+
+' <concatenation> ::= <add> ("&" <add>)*
+Private Function Concatenation(p As Parser) As Dictionary
+    Dim node As Dictionary
+    Set node = Add(p)
+    Do While HasNext(p)
+        If Consume(p, "&") Then
+            Set node = NewBinary(ND_CONCAT, node, Add(p))
+        Else
+            Exit Do
+        End If
+    Loop
+    Set Concatenation = node
 End Function
 
 ' <add>    ::= <mul> ("+" <mul> | "-" <mul>)*
@@ -485,7 +505,8 @@ Public Function Pretty(node As Dictionary, indentLength As Long, Optional indent
             Push sb, node("val")
             Push sb, Chr(34)
         Case ND_ADD, ND_SUB, ND_MUL, ND_DIV, _
-             ND_EQ, ND_NE, ND_LT, ND_LE, ND_GT, ND_GE
+             ND_EQ, ND_NE, ND_LT, ND_LE, ND_GT, ND_GE, _
+             ND_CONCAT
             If node("enclosed") Then
                 Push sb, "("
                 Push sb, vbCrLf

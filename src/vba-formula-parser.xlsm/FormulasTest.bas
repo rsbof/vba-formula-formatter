@@ -64,6 +64,21 @@ Sub TestTokenize()
         Stringify(Array( _
             Token(TK_STRING, "a b c", 1) _
         )))
+    tests.Add Array( _
+        "test tokenize concatenation", _
+        "(+1&""abc"")&NOW()", _
+        Stringify(Array( _
+            Token(TK_PUNCT, "(", 1), _
+            Token(TK_PUNCT, "+", 2), _
+            Token(TK_NUM, "1", 3), _
+            Token(TK_PUNCT, "&", 4), _
+            Token(TK_STRING, "abc", 5), _
+            Token(TK_PUNCT, ")", 10), _
+            Token(TK_PUNCT, "&", 11), _
+            Token(TK_FUNCNAME, "NOW", 12), _
+            Token(TK_PUNCT, "(", 15), _
+            Token(TK_PUNCT, ")", 16) _
+    )))
     Dim t As Variant
     For Each t In tests
         If IsArray(t) Then
@@ -98,6 +113,7 @@ Sub TestParse()
         "SUM.1(MIN(a))", _
         "IF(AND(1=1,MIN(x)=MAX(y)),NOW(),DATE(1990,1,1))", _
         """a b c""", _
+        "(+1&""abc"")&NOW()", _
         "" _
     )
     Dim t As Variant
@@ -147,6 +163,13 @@ Sub TestPretty()
     )
     tests.Add Array( _
         "test pretty string literal", _
+        "(+1&""abc"")&NOW()", _
+        "(" & vbCrLf & _
+        "  1 & ""abc""" & vbCrLf & _
+        ") & NOW()" _
+    )
+    tests.Add Array( _
+        "test pretty concatenation", _
         """hello world""", _
         """hello world""" _
     )
@@ -239,7 +262,8 @@ Private Sub DumpNode(node As Dictionary, indentLevel As Long)
             Debug.Print prefix & "- " & "val: " & node("val")
         Case Formulas.NodeKind.ND_ADD, Formulas.NodeKind.ND_SUB, Formulas.NodeKind.ND_MUL, Formulas.NodeKind.ND_DIV, _
              Formulas.NodeKind.ND_EQ, Formulas.NodeKind.ND_NE, _
-             Formulas.NodeKind.ND_LT, Formulas.NodeKind.ND_LE, Formulas.NodeKind.ND_GT, Formulas.NodeKind.ND_GE
+             Formulas.NodeKind.ND_LT, Formulas.NodeKind.ND_LE, Formulas.NodeKind.ND_GT, Formulas.NodeKind.ND_GE, _
+             Formulas.NodeKind.ND_CONCAT
             Debug.Print prefix & "- " & "kind: " & NodeKindMap(k)
             Debug.Print prefix & "lhs:"
             Call DumpNode(node("lhs"), indentLevel + 1)
