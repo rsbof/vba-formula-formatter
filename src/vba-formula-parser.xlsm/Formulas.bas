@@ -57,7 +57,7 @@ Public Type Formatter
     indent As Indentation
     newLine As String
     eqAtStart As Boolean
-    newLineAtEol As Boolean
+    newLineAtEof As Boolean
 End Type
 
 Private Const BUF_MAX As Long = 16384
@@ -597,7 +597,7 @@ Public Function Stringify(ast As Dictionary, fmt As Formatter) As String
     If fmt.eqAtStart Then
         s = "=" & s
     End If
-    If fmt.newLineAtEol Then
+    If fmt.newLineAtEof Then
         s = s & vbCrLf
     End If
     Stringify = s
@@ -621,12 +621,12 @@ Public Function NewFormatter( _
     indent As Indentation, _
     newLine As String, _
     eqAtStart As Boolean, _
-    newLineAtEol As Boolean) As Formatter
+    newLineAtEof As Boolean) As Formatter
     Dim f As Formatter
     f.indent = indent
     f.newLine = newLine
     f.eqAtStart = eqAtStart
-    f.newLineAtEol = newLineAtEol
+    f.newLineAtEof = newLineAtEof
     NewFormatter = f
 End Function
 
@@ -847,7 +847,7 @@ Private Function UpIndent(fmt As Formatter) As Formatter
         NewIndentation(fmt.indent.char, fmt.indent.length, fmt.indent.level + 1), _
         fmt.newLine, _
         fmt.eqAtStart, _
-        fmt.newLineAtEol _
+        fmt.newLineAtEof _
     )
     UpIndent = newFmt
 End Function
@@ -858,7 +858,7 @@ Private Function DownIndent(fmt As Formatter) As Formatter
         NewIndentation(fmt.indent.char, fmt.indent.length, fmt.indent.level - 1), _
         fmt.newLine, _
         fmt.eqAtStart, _
-        fmt.newLineAtEol _
+        fmt.newLineAtEof _
     )
     DownIndent = newFmt
 End Function
