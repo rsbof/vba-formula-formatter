@@ -47,7 +47,7 @@ Private Type StringBuffer
     pos As Long
 End Type
 
-Private Const BUF_MAX As Long = 8096
+Private Const BUF_MAX As Long = 16384
 
 Static Property Get TokenKindMap() As Dictionary
     Set TokenKindMap = New Dictionary
