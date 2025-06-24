@@ -271,12 +271,26 @@ Sub TestPretty()
         "  2, 2" & vbCrLf & _
         "}" _
     )
+    tests.Add Array( _
+        "test pretty parentheses", _
+        "=(1+2)*3", _
+        "(" & vbCrLf & _
+        "  1 + 2" & vbCrLf & _
+        ") * 3" _
+    )
     Dim t As Variant
+    Dim fmt As Formulas.Formatter
+    fmt = Formulas.NewFormatter( _
+        Formulas.NewIndentation(" ", 2), _
+        vbCrLf, _
+        False, _
+        False _
+    )
     For Each t In tests
         If IsArray(t) Then
             On Error GoTo Catch
                 Dim actualPretty As String
-                actualPretty = Formulas.Pretty(Formulas.Parse(CStr(t(1))), 2)
+                actualPretty = Formulas.Stringify(Formulas.Parse(CStr(t(1))), fmt)
                 If actualPretty = CStr(t(2)) Then
                     Debug.Print "ok: " & t(0)
                 Else

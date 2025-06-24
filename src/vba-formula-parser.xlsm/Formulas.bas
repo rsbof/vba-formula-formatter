@@ -47,6 +47,19 @@ Private Type StringBuffer
     pos As Long
 End Type
 
+Public Type Indentation
+    char As String
+    length As Long
+    level As Long
+End Type
+
+Public Type Formatter
+    indent As Indentation
+    newLine As String
+    eqAtStart As Boolean
+    newLineAtEol As Boolean
+End Type
+
 Private Const BUF_MAX As Long = 16384
 
 Static Property Get TokenKindMap() As Dictionary
@@ -203,10 +216,10 @@ Private Sub ErrorAt(rest As String, msg As String)
     pos = Len(input_) - Len(rest)
     Dim prefix As String
     Dim m As String
-    prefix = NewIndent(1, 4)
+    prefix = IndentString(NewIndentation(" ", 1, 4))
     m = m & "tokenize error:" & vbCrLf
     m = m & prefix & input_ & vbCrLf
-    m = m & prefix & NewIndent(1, 0) & "^ " & msg
+    m = m & prefix & IndentString(NewIndentation(" ", 1, pos - 1)) & "^ " & msg
     Err.Raise 5, Description:=m
 End Sub
 
@@ -342,10 +355,10 @@ Private Sub ErrorAt2(p As Parser, msg As String)
     End If
     Dim prefix As String
     Dim m As String
-    prefix = NewIndent(1, 4)
+    prefix = IndentString(NewIndentation(" ", 1, 4))
     m = m & "parse error:" & vbCrLf
     m = m & prefix & input_ & vbCrLf
-    m = m & prefix & NewIndent(1, start - 1) & "^ " & msg
+    m = m & prefix & IndentString(NewIndentation(" ", 1, start - 1)) & "^ " & msg
     Err.Raise 5, Description:=m
 End Sub
 
@@ -574,7 +587,7 @@ Private Function Args(p As Parser) As Collection
     Set Args = c
 End Function
 
-Public Function Pretty(node As Dictionary, indentLength As Long, Optional indentLevel As Long = 0) As String
+Public Function Pretty(node As Dictionary, fmt As Formatter) As String
     Dim sb As StringBuffer
     Dim k As NodeKind
     sb = NewStringBuffer(256)
@@ -592,22 +605,22 @@ Public Function Pretty(node As Dictionary, indentLength As Long, Optional indent
              ND_CONCAT
             If node("enclosed") Then
                 Push sb, "("
-                Push sb, vbCrLf
-                Push sb, NewIndent(indentLevel + 1, indentLength)
-                Push sb, Pretty(node("lhs"), indentLength, indentLevel + 1)
+                Push sb, fmt.newLine
+                Push sb, NextIndent(fmt)
+                Push sb, Pretty(node("lhs"), UpIndent(fmt))
                 Push sb, " "
                 Push sb, OperatorMap(k)
                 Push sb, " "
-                Push sb, Pretty(node("rhs"), indentLength, indentLevel + 1)
-                Push sb, vbCrLf
-                Push sb, NewIndent(indentLevel - 1, indentLength)
+                Push sb, Pretty(node("rhs"), UpIndent(fmt))
+                Push sb, fmt.newLine
+                Push sb, PrevIndent(fmt)
                 Push sb, ")"
             Else
-                Push sb, Pretty(node("lhs"), indentLength, indentLevel)
+                Push sb, Pretty(node("lhs"), fmt)
                 Push sb, " "
                 Push sb, OperatorMap(k)
                 Push sb, " "
-                Push sb, Pretty(node("rhs"), indentLength, indentLevel)
+                Push sb, Pretty(node("rhs"), fmt)
             End If
         Case ND_FUNC
             Push sb, node("name")
@@ -617,17 +630,17 @@ Public Function Pretty(node As Dictionary, indentLength As Long, Optional indent
             If args_.Count = 0 Then
                 Push sb, ")"
             Else
-                Push sb, vbCrLf
+                Push sb, fmt.newLine
                 For i = 1 To args_.Count
-                    Push sb, NewIndent(indentLevel + 1, indentLength)
-                    Push sb, Pretty(args_(i), indentLength, indentLevel + 1)
+                    Push sb, NextIndent(fmt)
+                    Push sb, Pretty(args_(i), UpIndent(fmt))
                     If i < args_.Count Then
                         Push sb, ","
-                        Push sb, vbCrLf
+                        Push sb, fmt.newLine
                     End If
                 Next i
-                Push sb, vbCrLf
-                Push sb, NewIndent(indentLevel, indentLength)
+                Push sb, fmt.newLine
+                Push sb, CurrentIndent(fmt)
                 Push sb, ")"
             End If
         Case ND_STRING
@@ -636,25 +649,25 @@ Public Function Pretty(node As Dictionary, indentLength As Long, Optional indent
             Push sb, Chr(34)
         Case ND_ARRAY
             Push sb, "{"
-            Push sb, vbCrLf
+            Push sb, fmt.newLine
             Dim rows_ As Collection
             Set rows_ = node("elements")
             For i = 1 To rows_.Count
-                Push sb, NewIndent(indentLevel + 1, indentLength)
-                Push sb, Pretty(rows_(i), indentLength + 1, indentLevel)
+                Push sb, NextIndent(fmt)
+                Push sb, Pretty(rows_(i), fmt)
                 If i < rows_.Count Then
                     Push sb, ";"
-                    Push sb, vbCrLf
+                    Push sb, fmt.newLine
                 End If
             Next i
-            Push sb, vbCrLf
-            Push sb, NewIndent(indentLevel - 1, indentLength)
+            Push sb, fmt.newLine
+            Push sb, PrevIndent(fmt)
             Push sb, "}"
         Case ND_ARRAY_ROW
             Dim cols As Collection
             Set cols = node("elements")
             For i = 1 To cols.Count
-                Push sb, Pretty(cols(i), indentLength, indentLevel)
+                Push sb, Pretty(cols(i), fmt)
                 If i < cols.Count Then
                     Push sb, ","
                     Push sb, " "
@@ -668,12 +681,36 @@ Public Function Pretty(node As Dictionary, indentLength As Long, Optional indent
     Pretty = ToString(sb)
 End Function
 
-Private Function NewIndent(level As Long, length As Long) As String
-    If level <= 0 Or length <= 0 Then
-        NewIndent = ""
+Public Function Stringify(ast As Dictionary, fmt As Formatter) As String
+    Dim s As String
+    s = Pretty(ast, fmt)
+    If fmt.eqAtStart Then
+        s = "=" & s
+    End If
+    If fmt.newLineAtEol Then
+        s = s & vbCrLf
+    End If
+    Stringify = s
+End Function
+
+Public Function NewIndentation(char As String, length As Long, Optional level As Long = 0) As Indentation
+    Dim indent As Indentation
+    indent.char = char
+    indent.level = level
+    indent.length = length
+    NewIndentation = indent
+End Function
+
+Private Function HasValue(indent As Indentation) As Boolean
+    HasValue = indent.char <> "" And indent.level > 0 And indent.length > 0
+End Function
+
+Public Function IndentString(indent As Indentation) As String
+    If Not HasValue(indent) Then
+        IndentString = ""
         Exit Function
     End If
-    NewIndent = Space(level * length)
+    IndentString = String(indent.length * indent.level, indent.char)
 End Function
 
 Public Function NewStringBuffer(size As Long) As StringBuffer
@@ -713,4 +750,60 @@ End Sub
 
 Public Function ToString(sb As StringBuffer) As String
     ToString = Mid(sb.buf, 1, sb.pos - 1)
+End Function
+
+Public Function NewFormatter( _
+    indent As Indentation, _
+    newLine As String, _
+    eqAtStart As Boolean, _
+    newLineAtEol As Boolean) As Formatter
+    Dim f As Formatter
+    f.indent = indent
+    f.newLine = newLine
+    f.eqAtStart = eqAtStart
+    f.newLineAtEol = newLineAtEol
+    NewFormatter = f
+End Function
+
+Public Property Get DefaultFormatter() As Formatter
+    DefaultFormatter = NewFormatter( _
+        NewIndentation("", 0), _
+        "", _
+        True, _
+        True _
+    )
+End Property
+
+Private Function UpIndent(fmt As Formatter) As Formatter
+    Dim newFmt As Formatter
+    newFmt = NewFormatter( _
+        NewIndentation(fmt.indent.char, fmt.indent.length, fmt.indent.level + 1), _
+        fmt.newLine, _
+        fmt.eqAtStart, _
+        fmt.newLineAtEol _
+    )
+    UpIndent = newFmt
+End Function
+
+Private Function DownIndent(fmt As Formatter) As Formatter
+    Dim newFmt As Formatter
+    newFmt = NewFormatter( _
+        NewIndentation(fmt.indent.char, fmt.indent.length, fmt.indent.level - 1), _
+        fmt.newLine, _
+        fmt.eqAtStart, _
+        fmt.newLineAtEol _
+    )
+    DownIndent = newFmt
+End Function
+
+Private Function CurrentIndent(fmt As Formatter) As String
+    CurrentIndent = IndentString(fmt.indent)
+End Function
+
+Private Function NextIndent(fmt As Formatter) As String
+    NextIndent = CurrentIndent(UpIndent(fmt))
+End Function
+
+Private Function PrevIndent(fmt As Formatter) As String
+    PrevIndent = CurrentIndent(DownIndent(fmt))
 End Function
