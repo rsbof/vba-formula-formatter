@@ -685,6 +685,9 @@ Public Function NewStringBuffer(size As Long) As StringBuffer
 End Function
 
 Public Sub Push(sb As StringBuffer, val As String)
+    If Len(val) = 0 Then
+        Exit Sub
+    End If
     Do While Len(val) > (Len(sb.buf) - sb.pos) + 1
         DoubleBuffer sb
     Loop
