@@ -587,7 +587,49 @@ Private Function Args(p As Parser) As Collection
     Set Args = c
 End Function
 
-Public Function Pretty(node As Dictionary, fmt As Formatter) As String
+Public Function Stringify(ast As Dictionary, fmt As Formatter) As String
+    Dim s As String
+    s = Pretty(ast, fmt)
+    If fmt.eqAtStart Then
+        s = "=" & s
+    End If
+    If fmt.newLineAtEol Then
+        s = s & vbCrLf
+    End If
+    Stringify = s
+End Function
+
+Public Function NewIndentation(char As String, length As Long, Optional level As Long = 0) As Indentation
+    Dim indent As Indentation
+    indent.char = char
+    indent.level = level
+    indent.length = length
+    NewIndentation = indent
+End Function
+
+Public Function NewFormatter( _
+    indent As Indentation, _
+    newLine As String, _
+    eqAtStart As Boolean, _
+    newLineAtEol As Boolean) As Formatter
+    Dim f As Formatter
+    f.indent = indent
+    f.newLine = newLine
+    f.eqAtStart = eqAtStart
+    f.newLineAtEol = newLineAtEol
+    NewFormatter = f
+End Function
+
+Public Property Get DefaultFormatter() As Formatter
+    DefaultFormatter = NewFormatter( _
+        NewIndentation("", 0), _
+        "", _
+        True, _
+        True _
+    )
+End Property
+
+Private Function Pretty(node As Dictionary, fmt As Formatter) As String
     Dim sb As StringBuffer
     Dim k As NodeKind
     sb = NewStringBuffer(256)
@@ -643,10 +685,6 @@ Public Function Pretty(node As Dictionary, fmt As Formatter) As String
                 Push sb, CurrentIndent(fmt)
                 Push sb, ")"
             End If
-        Case ND_STRING
-            Push sb, Chr(34)
-            Push sb, node("val")
-            Push sb, Chr(34)
         Case ND_ARRAY
             Push sb, "{"
             Push sb, fmt.newLine
@@ -681,98 +719,17 @@ Public Function Pretty(node As Dictionary, fmt As Formatter) As String
     Pretty = ToString(sb)
 End Function
 
-Public Function Stringify(ast As Dictionary, fmt As Formatter) As String
-    Dim s As String
-    s = Pretty(ast, fmt)
-    If fmt.eqAtStart Then
-        s = "=" & s
-    End If
-    If fmt.newLineAtEol Then
-        s = s & vbCrLf
-    End If
-    Stringify = s
-End Function
-
-Public Function NewIndentation(char As String, length As Long, Optional level As Long = 0) As Indentation
-    Dim indent As Indentation
-    indent.char = char
-    indent.level = level
-    indent.length = length
-    NewIndentation = indent
-End Function
-
 Private Function HasValue(indent As Indentation) As Boolean
     HasValue = indent.char <> "" And indent.level > 0 And indent.length > 0
 End Function
 
-Public Function IndentString(indent As Indentation) As String
+Private Function IndentString(indent As Indentation) As String
     If Not HasValue(indent) Then
         IndentString = ""
         Exit Function
     End If
     IndentString = String(indent.length * indent.level, indent.char)
 End Function
-
-Public Function NewStringBuffer(size As Long) As StringBuffer
-    If size > BUF_MAX Then
-        Debug.Print "Error: Requested buffer size (" & size & ") exceeds maximum allowed (" & BUF_MAX & " characters)."
-        End
-    End If
-    Dim sb As StringBuffer
-    sb.buf = String(size, vbNullChar)
-    sb.pos = 1
-    NewStringBuffer = sb
-End Function
-
-Public Sub Push(sb As StringBuffer, val As String)
-    If Len(val) = 0 Then
-        Exit Sub
-    End If
-    Do While Len(val) > (Len(sb.buf) - sb.pos) + 1
-        DoubleBuffer sb
-    Loop
-    Mid(sb.buf, sb.pos) = val
-    sb.pos = sb.pos + Len(val)
-End Sub
-
-Private Sub DoubleBuffer(sb As StringBuffer)
-    Dim curLen As Long
-    curLen = Len(sb.buf)
-    If curLen * 2 > BUF_MAX Then
-        Debug.Print "error: The buffer has reached its maximum allowed size of " & BUF_MAX & " characters."
-        End
-    End If
-    Dim newBuf As String
-    newBuf = String(curLen * 2, vbNullChar)
-    Mid(newBuf, 1) = sb.buf
-    sb.buf = newBuf
-End Sub
-
-Public Function ToString(sb As StringBuffer) As String
-    ToString = Mid(sb.buf, 1, sb.pos - 1)
-End Function
-
-Public Function NewFormatter( _
-    indent As Indentation, _
-    newLine As String, _
-    eqAtStart As Boolean, _
-    newLineAtEol As Boolean) As Formatter
-    Dim f As Formatter
-    f.indent = indent
-    f.newLine = newLine
-    f.eqAtStart = eqAtStart
-    f.newLineAtEol = newLineAtEol
-    NewFormatter = f
-End Function
-
-Public Property Get DefaultFormatter() As Formatter
-    DefaultFormatter = NewFormatter( _
-        NewIndentation("", 0), _
-        "", _
-        True, _
-        True _
-    )
-End Property
 
 Private Function UpIndent(fmt As Formatter) As Formatter
     Dim newFmt As Formatter
@@ -806,4 +763,43 @@ End Function
 
 Private Function PrevIndent(fmt As Formatter) As String
     PrevIndent = CurrentIndent(DownIndent(fmt))
+End Function
+
+Private Function NewStringBuffer(size As Long) As StringBuffer
+    If size > BUF_MAX Then
+        Debug.Print "Error: Requested buffer size (" & size & ") exceeds maximum allowed (" & BUF_MAX & " characters)."
+        End
+    End If
+    Dim sb As StringBuffer
+    sb.buf = String(size, vbNullChar)
+    sb.pos = 1
+    NewStringBuffer = sb
+End Function
+
+Private Sub Push(sb As StringBuffer, val As String)
+    If Len(val) = 0 Then
+        Exit Sub
+    End If
+    Do While Len(val) > (Len(sb.buf) - sb.pos) + 1
+        DoubleBuffer sb
+    Loop
+    Mid(sb.buf, sb.pos) = val
+    sb.pos = sb.pos + Len(val)
+End Sub
+
+Private Sub DoubleBuffer(sb As StringBuffer)
+    Dim curLen As Long
+    curLen = Len(sb.buf)
+    If curLen * 2 > BUF_MAX Then
+        Debug.Print "error: The buffer has reached its maximum allowed size of " & BUF_MAX & " characters."
+        End
+    End If
+    Dim newBuf As String
+    newBuf = String(curLen * 2, vbNullChar)
+    Mid(newBuf, 1) = sb.buf
+    sb.buf = newBuf
+End Sub
+
+Private Function ToString(sb As StringBuffer) As String
+    ToString = Mid(sb.buf, 1, sb.pos - 1)
 End Function
