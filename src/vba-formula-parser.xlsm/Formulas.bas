@@ -599,6 +599,12 @@ Public Function Stringify(ast As Dictionary, fmt As Formatter) As String
     Stringify = s
 End Function
 
+Public Function DebugAst(ast As Dictionary, fmt As Formatter) As String
+    Dim json As String
+    json = ToJson(ast, fmt)
+    DebugAst = json
+End Function
+
 Public Function NewIndentation(char As String, length As Long, Optional level As Long = 0) As Indentation
     Dim indent As Indentation
     indent.char = char
@@ -717,6 +723,106 @@ Private Function Pretty(node As Dictionary, fmt As Formatter) As String
     End Select
 
     Pretty = ToString(sb)
+End Function
+
+Private Function ToJson(ast As Dictionary, fmt As Formatter) As String
+    Dim i As Long
+    Dim sb As StringBuffer
+    sb = NewStringBuffer(256)
+    Push sb, "{"
+    Push sb, fmt.newLine
+    Push sb, NextIndent(fmt)
+    Push sb, """kind"": "
+    Push sb, Quote(NodeKindMap(CLng(ast("kind"))))
+    Push sb, ","
+    Push sb, fmt.newLine
+    Push sb, NextIndent(fmt)
+    Select Case ast("kind")
+        Case ND_NUM
+            Push sb, """val"": "
+            Push sb, ast("val")
+        Case ND_IDENT, ND_STRING
+            Push sb, """val"": "
+            Push sb, Quote(ast("val"))
+        Case ND_ADD, ND_SUB, ND_MUL, ND_DIV, _
+             ND_EQ, ND_NE, _
+             ND_LT, ND_LE, ND_GT, ND_GE, _
+             ND_CONCAT
+            Push sb, """lhs"": "
+            Push sb, ToJson(ast("lhs"), UpIndent(fmt))
+            Push sb, ","
+            Push sb, fmt.newLine
+            Push sb, NextIndent(fmt)
+            Push sb, """rhs"": "
+            Push sb, ToJson(ast("rhs"), UpIndent(fmt))
+        Case ND_FUNC
+            Push sb, """name"": "
+            Push sb, Quote(ast("name"))
+            Push sb, ","
+            Push sb, fmt.newLine
+            Push sb, NextIndent(fmt)
+            Push sb, """args"": ["
+            Dim args_ As Collection
+            Set args_ = ast("args")
+            If args_.Count > 0 Then
+                Push sb, fmt.newLine
+                For i = 1 To args_.Count
+                    ' one level deeper than the array property itself
+                    Push sb, NextIndent(UpIndent(fmt))
+                    Push sb, ToJson(args_(i), UpIndent(UpIndent(fmt)))
+                    If i < args_.Count Then
+                        Push sb, ","
+                    End If
+                    Push sb, fmt.newLine
+                Next i
+                ' for closing bracket
+                Push sb, NextIndent(fmt)
+            End If
+            Push sb, "]"
+        Case ND_ARRAY
+            Push sb, """elements"": ["
+            Dim rows_ As Collection
+            Set rows_ = ast("elements")
+            If rows_.Count > 0 Then
+                Push sb, fmt.newLine
+                For i = 1 To rows_.Count
+                    Push sb, NextIndent(UpIndent(fmt))
+                    Push sb, ToJson(rows_(i), UpIndent(UpIndent(fmt)))
+                    If i < rows_.Count Then
+                        Push sb, ","
+                    End If
+                    Push sb, fmt.newLine
+                Next i
+                Push sb, NextIndent(fmt)
+            End If
+            Push sb, "]"
+        Case ND_ARRAY_ROW
+            Push sb, """elements"": ["
+            Dim cols_ As Collection
+            Set cols_ = ast("elements")
+            If cols_.Count > 0 Then
+                Push sb, fmt.newLine
+                For i = 1 To cols_.Count
+                    Push sb, NextIndent(UpIndent(fmt))
+                    Push sb, ToJson(cols_(i), UpIndent(UpIndent(fmt)))
+                    If i < cols_.Count Then
+                        Push sb, ","
+                    End If
+                    Push sb, fmt.newLine
+                Next i
+                Push sb, NextIndent(fmt)
+            End If
+            Push sb, "]"
+    End Select
+    Push sb, fmt.newLine
+    Push sb, CurrentIndent(fmt)
+    Push sb, "}"
+
+    ToJson = ToString(sb)
+End Function
+
+Private Function Quote(str As String) As String
+    Quote = """" & str & """"
 End Function
 
 Private Function HasValue(indent As Indentation) As Boolean
