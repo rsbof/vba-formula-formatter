@@ -213,6 +213,9 @@ End Sub
 Public Function Parse(str As String) As Dictionary
     Dim p As Parser
     p = NewParser(Tokenize(str))
+    If Not Consume(p, "=") Then
+        ErrorAt2 p, "expected '='"
+    End If
 
     Dim root As Dictionary
     Set root = Expr(p)
@@ -346,7 +349,7 @@ Private Sub ErrorAt2(p As Parser, msg As String)
     Err.Raise 5, Description:=m
 End Sub
 
-' <expr>    ::= <equality>
+' <expr>    ::= "=" <equality>
 Private Function Expr(p As Parser) As Dictionary
     Set Expr = Equality(p)
 End Function

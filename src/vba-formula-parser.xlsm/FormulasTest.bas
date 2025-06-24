@@ -135,20 +135,20 @@ End Sub
 Sub TestParse()
     Dim tests As Variant
     tests = Array( _
-        "1+2", _
-        "1+2*3", _
-        "(1+2)*3", _
-        "x+y*z", _
-        "(ab+cd)*ef", _
-        "+12*-3/+xyz", _
-        "1=2<>3<4<=5>6>=7", _
-        "(((((1=2)<>3)<4)<=5)>6)>=7", _
-        "SUM(1,2)", _
-        "SUM.1(MIN(a))", _
-        "IF(AND(1=1,MIN(x)=MAX(y)),NOW(),DATE(1990,1,1))", _
-        """a b c""", _
-        "(+1&""abc"")&NOW()", _
-        "{1,2;""3"",""4"";TRUE,FALSE}*{2,2}", _
+        "=1+2", _
+        "=1+2*3", _
+        "=(1+2)*3", _
+        "=x+y*z", _
+        "=(ab+cd)*ef", _
+        "=+12*-3/+xyz", _
+        "=1=2<>3<4<=5>6>=7", _
+        "=(((((1=2)<>3)<4)<=5)>6)>=7", _
+        "=SUM(1,2)", _
+        "=SUM.1(MIN(a))", _
+        "=IF(AND(1=1,MIN(x)=MAX(y)),NOW(),DATE(1990,1,1))", _
+        "=""a b c""", _
+        "=(+1&""abc"")&NOW()", _
+        "={1,2;""3"",""4"";TRUE,FALSE}*{2,2}", _
         "" _
     )
     Dim t As Variant
@@ -165,19 +165,19 @@ Sub TestPretty()
     Set tests = New Collection
     tests.Add Array( _
         "test pretty simple addition", _
-        "1+2", _
+        "=1+2", _
         "1 + 2" _
     )
     tests.Add Array( _
         "test pretty parentheses", _
-        "(1+2)*3", _
+        "=(1+2)*3", _
         "(" & vbCrLf & _
         "  1 + 2" & vbCrLf & _
         ") * 3" _
     )
     tests.Add Array( _
         "test pretty function with args", _
-        "SUM(A, B)", _
+        "=SUM(A, B)", _
         "SUM(" & vbCrLf & _
         "  A," & vbCrLf & _
         "  B" & vbCrLf & _
@@ -185,7 +185,7 @@ Sub TestPretty()
     )
     tests.Add Array( _
         "test pretty nested function", _
-        "SUM(MIN(1, MAX(3, NOW())))", _
+        "=SUM(MIN(1, MAX(3, NOW())))", _
         "SUM(" & vbCrLf & _
         "  MIN(" & vbCrLf & _
         "    1," & vbCrLf & _
@@ -198,19 +198,19 @@ Sub TestPretty()
     )
     tests.Add Array( _
         "test pretty string literal", _
-        "(+1&""abc"")&NOW()", _
+        "=(+1&""abc"")&NOW()", _
         "(" & vbCrLf & _
         "  1 & ""abc""" & vbCrLf & _
         ") & NOW()" _
     )
     tests.Add Array( _
         "test pretty concatenation", _
-        """hello world""", _
+        "=""hello world""", _
         """hello world""" _
     )
     tests.Add Array( _
         "test compare functions", _
-        "MIN(x)=MAX(y)", _
+        "=MIN(x)=MAX(y)", _
         "MIN(" & vbCrLf & _
         "  x" & vbCrLf & _
         ") = MAX(" & vbCrLf & _
@@ -219,7 +219,7 @@ Sub TestPretty()
     )
     tests.Add Array( _
         "test pretty complex expression", _
-        "IF(AND(1=1,MIN(x)=MAX(y)),NOW(),DATE(1990,1,1))", _
+        "=IF(AND(1=1,MIN(x)=MAX(y)),NOW(),DATE(1990,1,1))", _
         "IF(" & vbCrLf & _
         "  AND(" & vbCrLf & _
         "    1 = 1," & vbCrLf & _
@@ -239,14 +239,14 @@ Sub TestPretty()
     )
     tests.Add Array( _
         "test pretty simple array", _
-        "{1,2}", _
+        "={1,2}", _
         "{" & vbCrLf & _
         "  1, 2" & vbCrLf & _
         "}" _
     )
     tests.Add Array( _
         "test pretty function with omitted args", _
-        "SUM(1,,2,,)", _
+        "=SUM(1,,2,,)", _
         "SUM(" & vbCrLf & _
         "  1," & vbCrLf & _
         "  ," & vbCrLf & _
@@ -257,12 +257,12 @@ Sub TestPretty()
     )
     tests.Add Array( _
         "failed parse", _
-        "{a}", _
+        "={a}", _
         "}" _
     )
     tests.Add Array( _
         "test pretty array", _
-        "{1,2;""3"",""4"";TRUE,FALSE}*{2,2}", _
+        "={1,2;""3"",""4"";TRUE,FALSE}*{2,2}", _
         "{" & vbCrLf & _
         "  1, 2;" & vbCrLf & _
         "  ""3"", ""4"";" & vbCrLf & _
