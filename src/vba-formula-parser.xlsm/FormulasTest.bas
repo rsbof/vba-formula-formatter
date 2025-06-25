@@ -10,19 +10,19 @@ Sub TestTokenize()
     Dim tests As Collection
     Set tests = New Collection
     tests.Add Array( _
-        "test tokenize math operators", _
+        "tokenize math operators", _
         "+-*/", _
         Stringify(Array( _
             Token(TK_PUNCT, "+", 1), Token(TK_PUNCT, "-", 2), Token(TK_PUNCT, "*", 3), Token(TK_PUNCT, "/", 4) _
         )))
     tests.Add Array( _
-        "test tokenize parentheses", _
+        "tokenize parentheses", _
         "()", _
         Stringify(Array( _
             Token(TK_PUNCT, "(", 1), Token(TK_PUNCT, ")", 2) _
         )))
     tests.Add Array( _
-        "test tokenize ident", _
+        "tokenize ident", _
         "var,\a,FU_NC", _
         Stringify(Array( _
             Token(TK_IDENT, "var", 1), _
@@ -32,13 +32,13 @@ Sub TestTokenize()
             Token(TK_IDENT, "FU_NC", 8) _
         )))
     tests.Add Array( _
-        "test tokenize simple function call", _
+        "tokenize simple function call", _
         "SUM(12)", _
         Stringify(Array( _
             Token(TK_FUNCNAME, "SUM", 1), Token(TK_PUNCT, "(", 4), Token(TK_NUM, "12", 5), Token(TK_PUNCT, ")", 7) _
         )))
     tests.Add Array( _
-        "test tokenize multi-arg function call", _
+        "tokenize multi-arg function call", _
         "SUM(12, 34)", _
         Stringify(Array( _
             Token(TK_FUNCNAME, "SUM", 1), Token(TK_PUNCT, "(", 4), _
@@ -46,7 +46,7 @@ Sub TestTokenize()
             Token(TK_PUNCT, ")", 11) _
         )))
     tests.Add Array( _
-        "test tokenize comparison operators", _
+        "tokenize comparison operators", _
         "1=2<>3<4<=5>6>=7", _
         Stringify(Array( _
             Token(TK_NUM, "1", 1), Token(TK_PUNCT, "=", 2), Token(TK_NUM, "2", 3), _
@@ -57,7 +57,7 @@ Sub TestTokenize()
             Token(TK_PUNCT, ">=", 14), Token(TK_NUM, "7", 16) _
         )))
     tests.Add Array( _
-        "test tokenize nested function call", _
+        "tokenize nested function call", _
         "SUM(MIN(1, MAX(3, NOW())))", _
         Stringify(Array( _
             Token(TK_FUNCNAME, "SUM", 1), Token(TK_PUNCT, "(", 4), _
@@ -69,13 +69,13 @@ Sub TestTokenize()
             Token(TK_PUNCT, ")", 26) _
         )))
     tests.Add Array( _
-        "test tokenize string literas", _
+        "tokenize string literas", _
         """a b c""", _
         Stringify(Array( _
             Token(TK_STRING, "a b c", 1) _
         )))
     tests.Add Array( _
-        "test tokenize concatenation", _
+        "tokenize concatenation", _
         "(+1&""abc"")&NOW()", _
         Stringify(Array( _
             Token(TK_PUNCT, "(", 1), _
@@ -90,7 +90,7 @@ Sub TestTokenize()
             Token(TK_PUNCT, ")", 16) _
     )))
     tests.Add Array( _
-        "test tokenize array", _
+        "tokenize array", _
         "{1,2;""3"",""4"";TRUE,FALSE}*{2,2}", _
         Stringify(Array( _
             Token(TK_PUNCT, "{", 1), _
@@ -164,19 +164,19 @@ Sub TestPretty()
     Dim tests As Collection
     Set tests = New Collection
     tests.Add Array( _
-        "test pretty simple addition", _
+        "pretty simple addition", _
         "=1+2", _
         "1 + 2" _
     )
     tests.Add Array( _
-        "test pretty parentheses", _
+        "pretty parentheses", _
         "=(1+2)*3", _
         "(" & vbCrLf & _
         "  1 + 2" & vbCrLf & _
         ") * 3" _
     )
     tests.Add Array( _
-        "test pretty function with args", _
+        "pretty function with args", _
         "=SUM(A, B)", _
         "SUM(" & vbCrLf & _
         "  A," & vbCrLf & _
@@ -184,7 +184,7 @@ Sub TestPretty()
         ")" _
     )
     tests.Add Array( _
-        "test pretty nested function", _
+        "pretty nested function", _
         "=SUM(MIN(1, MAX(3, NOW())))", _
         "SUM(" & vbCrLf & _
         "  MIN(" & vbCrLf & _
@@ -197,19 +197,19 @@ Sub TestPretty()
         ")" _
     )
     tests.Add Array( _
-        "test pretty string literal", _
+        "pretty string literal", _
         "=(+1&""abc"")&NOW()", _
         "(" & vbCrLf & _
         "  1 & ""abc""" & vbCrLf & _
         ") & NOW()" _
     )
     tests.Add Array( _
-        "test pretty concatenation", _
+        "pretty concatenation", _
         "=""hello world""", _
         """hello world""" _
     )
     tests.Add Array( _
-        "test compare functions", _
+        "pretty function comparison", _
         "=MIN(x)=MAX(y)", _
         "MIN(" & vbCrLf & _
         "  x" & vbCrLf & _
@@ -218,7 +218,7 @@ Sub TestPretty()
         ")" _
     )
     tests.Add Array( _
-        "test pretty complex expression", _
+        "pretty complex expression", _
         "=IF(AND(1=1,MIN(x)=MAX(y)),NOW(),DATE(1990,1,1))", _
         "IF(" & vbCrLf & _
         "  AND(" & vbCrLf & _
@@ -238,14 +238,14 @@ Sub TestPretty()
         ")" _
     )
     tests.Add Array( _
-        "test pretty simple array", _
+        "pretty simple array", _
         "={1,2}", _
         "{" & vbCrLf & _
         "  1, 2" & vbCrLf & _
         "}" _
     )
     tests.Add Array( _
-        "test pretty array in func", _
+        "pretty array in func", _
         "=LET(arr,{1,2;3,4},arr)", _
         "LET(" & vbCrLf & _
         "  arr," & vbCrLf & _
@@ -257,7 +257,7 @@ Sub TestPretty()
         ")" _
     )
     tests.Add Array( _
-        "test pretty function with omitted args", _
+        "pretty function with omitted args", _
         "=SUM(1,,2,,)", _
         "SUM(" & vbCrLf & _
         "  1," & vbCrLf & _
@@ -273,7 +273,7 @@ Sub TestPretty()
         "}" _
     )
     tests.Add Array( _
-        "test pretty array", _
+        "pretty array", _
         "={1,2;""3"",""4"";TRUE,FALSE}*{2,2}", _
         "{" & vbCrLf & _
         "  1, 2;" & vbCrLf & _
@@ -284,7 +284,7 @@ Sub TestPretty()
         "}" _
     )
     tests.Add Array( _
-        "test pretty parentheses", _
+        "pretty parentheses", _
         "=(1+2)*3", _
         "(" & vbCrLf & _
         "  1 + 2" & vbCrLf & _
@@ -320,8 +320,8 @@ Catch:
                     Debug.Print "ok: " & t(0)
                 Else
                     Debug.Print "ng: " & t(0)
+                    Debug.Print "  " & Err.Description
                 End If
-                Debug.Print "  " & Err.Description
             End If
         End If
     Next t
