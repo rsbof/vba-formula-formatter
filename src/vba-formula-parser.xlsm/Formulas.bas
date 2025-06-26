@@ -650,7 +650,7 @@ End Function
 
 Public Function Stringify(ast As Dictionary, fmt As Formatter) As String
     Dim s As String
-    s = Pretty(ast, fmt)
+    s = Format(ast, fmt)
     If fmt.eqAtStart Then
         s = "=" & s
     End If
@@ -658,6 +658,12 @@ Public Function Stringify(ast As Dictionary, fmt As Formatter) As String
         s = s & vbCrLf
     End If
     Stringify = s
+End Function
+
+Public Function Pretty(formula_ As String, fmt As Formatter) As String
+    Dim ast As Dictionary
+    Set ast = Parse(formula_)
+    Pretty = Stringify(ast, fmt)
 End Function
 
 Public Function DebugAst(ast As Dictionary, fmt As Formatter) As String
@@ -689,7 +695,7 @@ Public Function NewFormatter( _
     NewFormatter = f
 End Function
 
-Private Function Pretty(node As Dictionary, fmt As Formatter) As String
+Private Function Format(node As Dictionary, fmt As Formatter) As String
     Dim sb As StringBuffer
     Dim k As NodeKind
     sb = NewStringBuffer(256)
@@ -705,20 +711,20 @@ Private Function Pretty(node As Dictionary, fmt As Formatter) As String
                 Push sb, "("
                 Push sb, fmt.newLine
                 Push sb, NextIndent(fmt)
-                Push sb, Pretty(node("lhs"), UpIndent(fmt))
+                Push sb, Format(node("lhs"), UpIndent(fmt))
                 Push sb, " "
                 Push sb, OperatorMap(k)
                 Push sb, " "
-                Push sb, Pretty(node("rhs"), UpIndent(fmt))
+                Push sb, Format(node("rhs"), UpIndent(fmt))
                 Push sb, fmt.newLine
                 Push sb, PrevIndent(fmt)
                 Push sb, ")"
             Else
-                Push sb, Pretty(node("lhs"), fmt)
+                Push sb, Format(node("lhs"), fmt)
                 Push sb, " "
                 Push sb, OperatorMap(k)
                 Push sb, " "
-                Push sb, Pretty(node("rhs"), fmt)
+                Push sb, Format(node("rhs"), fmt)
             End If
         Case ND_FUNC
             Push sb, node("name")
@@ -731,7 +737,7 @@ Private Function Pretty(node As Dictionary, fmt As Formatter) As String
                 Push sb, fmt.newLine
                 For i = 1 To args_.Count
                     Push sb, NextIndent(fmt)
-                    Push sb, Pretty(args_(i), UpIndent(fmt))
+                    Push sb, Format(args_(i), UpIndent(fmt))
                     If i < args_.Count Then
                         Push sb, ","
                         Push sb, fmt.newLine
@@ -748,7 +754,7 @@ Private Function Pretty(node As Dictionary, fmt As Formatter) As String
             Set rows_ = node("elements")
             For i = 1 To rows_.Count
                 Push sb, NextIndent(fmt)
-                Push sb, Pretty(rows_(i), fmt)
+                Push sb, Format(rows_(i), fmt)
                 If i < rows_.Count Then
                     Push sb, ";"
                     Push sb, fmt.newLine
@@ -761,7 +767,7 @@ Private Function Pretty(node As Dictionary, fmt As Formatter) As String
             Dim cols As Collection
             Set cols = node("elements")
             For i = 1 To cols.Count
-                Push sb, Pretty(cols(i), fmt)
+                Push sb, Format(cols(i), fmt)
                 If i < cols.Count Then
                     Push sb, ","
                     Push sb, " "
@@ -772,7 +778,7 @@ Private Function Pretty(node As Dictionary, fmt As Formatter) As String
         Case Else
     End Select
 
-    Pretty = ToString(sb)
+    Format = ToString(sb)
 End Function
 
 Private Function ToJson(ast As Dictionary, fmt As Formatter) As String
