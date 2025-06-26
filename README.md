@@ -31,6 +31,27 @@ out:
 Import Formulas.bas into your project
 Include "Microsoft Scripting Runtime"
 
+## Usage
+
+To pretty-print a formula, use the `Pretty` function:
+
+```vba
+Dim originalFormula As String
+originalFormula = "=CONCAT("R",MOD(ROW()-6,2)*2+1,"C",INT((ROW()-6)/2)*2+1)"
+
+Dim fmt As Formulas.Formatter
+fmt = Formulas.NewFormatter( _
+    indent:=" ", _
+    indentLength:=2, _
+    newLine:=vbCrLf, _
+    eqAtStart:=True, _
+    newLineAtEof:=True _
+)
+
+Dim formattedFormula As String
+formattedFormula = Formulas.Pretty(originalFormula, fmt)
+```
+
 ## Supported Syntax
 
 - Operators
