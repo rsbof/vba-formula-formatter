@@ -125,8 +125,8 @@ Private Static Property Get OperatorMap() As Dictionary
     Set OperatorMap = m
 End Property
 
-Private Function Tokenize(str As String) As Collection
-    input_ = Replace(Replace(str, vbCr, " "), vbLf, " ")
+Private Function Tokenize(s As String) As Collection
+    input_ = Replace(Replace(s, vbCr, " "), vbLf, " ")
     Dim t As Tokenizer
     t.input = input_
     t.pos = 1
@@ -284,9 +284,9 @@ Private Sub ErrorAt(t As Tokenizer, msg As String)
     Err.Raise 5, Description:=m
 End Sub
 
-Public Function Parse(str As String) As Dictionary
+Public Function Parse(s As String) As Dictionary
     Dim p As Parser
-    p = NewParser(Tokenize(str))
+    p = NewParser(Tokenize(s))
     If Not Consume(p, "=") Then
         ErrorAt2 p, "expected '='"
     End If
@@ -877,8 +877,8 @@ Private Function ToJson(ast As Dictionary, fmt As Formatter) As String
     ToJson = ToString(sb)
 End Function
 
-Private Function Quote(str As String) As String
-    Quote = """" & str & """"
+Private Function Quote(s As String) As String
+    Quote = """" & s & """"
 End Function
 
 Private Function HasValue(indent As Indentation) As Boolean
