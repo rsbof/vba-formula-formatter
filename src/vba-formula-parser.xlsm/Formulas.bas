@@ -717,7 +717,7 @@ Private Function Format(node As Dictionary, fmt As Formatter) As String
                 Push sb, " "
                 Push sb, Format(node("rhs"), UpIndent(fmt))
                 Push sb, fmt.newLine
-                Push sb, PrevIndent(fmt)
+                Push sb, CurrentIndent(fmt)
                 Push sb, ")"
             Else
                 Push sb, Format(node("lhs"), fmt)

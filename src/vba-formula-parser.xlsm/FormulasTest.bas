@@ -284,11 +284,21 @@ Sub TestPretty()
         "}" _
     )
     tests.Add Array( _
-        "pretty parentheses", _
-        "=(1+2)*3", _
-        "(" & vbCrLf & _
-        "  1 + 2" & vbCrLf & _
-        ") * 3" _
+        "pretty functions", _
+        "=CONCAT(""R"",MOD(ROW()-6,2)*2+1,""C"",INT((ROW()-6)/2)*2+1)", _
+        "CONCAT(" & vbCrLf & _
+        "  ""R""," & vbCrLf & _
+        "  MOD(" & vbCrLf & _
+        "    ROW() - 6," & vbCrLf & _
+        "    2" & vbCrLf & _
+        "  ) * 2 + 1," & vbCrLf & _
+        "  ""C""," & vbCrLf & _
+        "  INT(" & vbCrLf & _
+        "    (" & vbCrLf & _
+        "      ROW() - 6" & vbCrLf & _
+        "    ) / 2" & vbCrLf & _
+        "  ) * 2 + 1" & vbCrLf & _
+        ")" _
     )
     Dim t As Variant
     Dim fmt As Formulas.Formatter
