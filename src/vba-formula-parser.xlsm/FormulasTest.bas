@@ -293,10 +293,11 @@ Sub TestPretty()
     Dim t As Variant
     Dim fmt As Formulas.Formatter
     fmt = Formulas.NewFormatter( _
-        Formulas.NewIndentation(" ", 2), _
-        vbCrLf, _
-        False, _
-        False _
+        indent:=" ", _
+        indentLength:=2, _
+        newLine:=vbCrLf, _
+        eqAtStart:=False, _
+        newLineAtEof:=False _
     )
     For Each t In tests
         If IsArray(t) Then

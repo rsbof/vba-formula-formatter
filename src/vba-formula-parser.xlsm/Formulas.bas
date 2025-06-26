@@ -666,7 +666,7 @@ Public Function DebugAst(ast As Dictionary, fmt As Formatter) As String
     DebugAst = json
 End Function
 
-Public Function NewIndentation(char As String, length As Long, Optional level As Long = 0) As Indentation
+Private Function NewIndentation(char As String, length As Long, Optional level As Long = 0) As Indentation
     Dim indent As Indentation
     indent.char = char
     indent.level = level
@@ -675,26 +675,19 @@ Public Function NewIndentation(char As String, length As Long, Optional level As
 End Function
 
 Public Function NewFormatter( _
-    indent As Indentation, _
-    newLine As String, _
-    eqAtStart As Boolean, _
-    newLineAtEof As Boolean) As Formatter
+    Optional indent As String, _
+    Optional indentLength As Long, _
+    Optional indentLevel As Long, _
+    Optional newLine As String, _
+    Optional eqAtStart As Boolean = True, _
+    Optional newLineAtEof As Boolean = True) As Formatter
     Dim f As Formatter
-    f.indent = indent
+    f.indent = NewIndentation(indent, indentLength, indentLevel)
     f.newLine = newLine
     f.eqAtStart = eqAtStart
     f.newLineAtEof = newLineAtEof
     NewFormatter = f
 End Function
-
-Public Property Get DefaultFormatter() As Formatter
-    DefaultFormatter = NewFormatter( _
-        NewIndentation("", 0), _
-        "", _
-        True, _
-        True _
-    )
-End Property
 
 Private Function Pretty(node As Dictionary, fmt As Formatter) As String
     Dim sb As StringBuffer
@@ -897,7 +890,9 @@ End Function
 Private Function UpIndent(fmt As Formatter) As Formatter
     Dim newFmt As Formatter
     newFmt = NewFormatter( _
-        NewIndentation(fmt.indent.char, fmt.indent.length, fmt.indent.level + 1), _
+        fmt.indent.char, _
+        fmt.indent.length, _
+        fmt.indent.level + 1, _
         fmt.newLine, _
         fmt.eqAtStart, _
         fmt.newLineAtEof _
@@ -908,7 +903,9 @@ End Function
 Private Function DownIndent(fmt As Formatter) As Formatter
     Dim newFmt As Formatter
     newFmt = NewFormatter( _
-        NewIndentation(fmt.indent.char, fmt.indent.length, fmt.indent.level - 1), _
+        fmt.indent.char, _
+        fmt.indent.length, _
+        fmt.indent.level - 1, _
         fmt.newLine, _
         fmt.eqAtStart, _
         fmt.newLineAtEof _
