@@ -236,12 +236,10 @@ End Sub
 Private Function Tokenizer_NextToken(t As Tokenizer) As Token
     Select Case True
         Case IsNumeric(Tokenizer_Current(t))
-            Do While IsNumeric(Tokenizer_Next(t)): Loop
-            Tokenizer_Rewind t
+            Do While IsNumeric(Tokenizer_Next(t)): Loop: Tokenizer_Rewind t
             Tokenizer_NextToken = Tokenizer_NewToken(t, TK_NUM)
         Case IsIdent(Tokenizer_Current(t))
-            Do While IsIdent(Tokenizer_Next(t)): Loop
-            Tokenizer_Rewind t
+            Do While IsIdent(Tokenizer_Next(t)): Loop: Tokenizer_Rewind t
             If Tokenizer_Peek(t) = "(" Then
                 Tokenizer_NextToken = Tokenizer_NewToken(t, TK_FUNCNAME)
             ElseIf IsColumnAlpha(Tokenizer_Current(t)) Then
