@@ -393,14 +393,14 @@ End Sub
 Public Function Parse(s As String) As Dictionary
     Dim p As Parser
     p = NewParser(Tokenize(s))
-    If Not Consume(p, "=") Then
-        ErrorAt2 p, "expected '='"
+    If Not Parser_Consume(p, "=") Then
+        Parser_ErrorAt2 p, "expected '='"
     End If
 
     Dim root As Dictionary
     Set root = Expr(p)
-    If HasNext(p) Then
-        ErrorAt2 p, "unexpected trailing token"
+    If Parser_HasNext(p) Then
+        Parser_ErrorAt2 p, "unexpected trailing token"
     End If
 
     Set Parse = root
@@ -464,63 +464,63 @@ Private Function NewRef(val As String) As Dictionary
     NewRef.Add "val", val
 End Function
 
-Private Sub Advance(p As Parser)
+Private Sub Parser_Advance(p As Parser)
     p.pos = p.pos + 1
 End Sub
 
-Private Sub Rewind(p As Parser)
+Private Sub Parser_Rewind(p As Parser)
     p.pos = p.pos - 1
 End Sub
 
-Private Function HasNext(p As Parser) As Boolean
-    HasNext = (p.pos <= p.tokens.Count)
+Private Function Parser_HasNext(p As Parser) As Boolean
+    Parser_HasNext = (p.pos <= p.tokens.Count)
 End Function
 
-Private Function NextToken(p As Parser) As Token
-    If Not HasNext(p) Then
-        ErrorAt2 p, "no more tokens can be parsed"
+Private Function Parser_NextToken(p As Parser) As Token
+    If Not Parser_HasNext(p) Then
+        Parser_ErrorAt2 p, "no more tokens can be parsed"
     End If
 
     Dim t() As Variant
     t = p.tokens(p.pos)
-    Advance p
+    Parser_Advance p
 
     Dim tok As Token
     tok.kind = t(0)
     tok.val = t(1)
     tok.pos = t(2)
 
-    NextToken = tok
+    Parser_NextToken = tok
 End Function
 
-Private Function Peek(p As Parser) As Token
+Private Function Parser_Peek(p As Parser) As Token
     Dim t As Token
-    t = NextToken(p)
-    Rewind p
-    Peek = t
+    t = Parser_NextToken(p)
+    Parser_Rewind p
+    Parser_Peek = t
 End Function
 
-Private Function Consume(p As Parser, prefix As String) As Boolean
+Private Function Parser_Consume(p As Parser, prefix As String) As Boolean
     Dim t As Token
-    t = NextToken(p)
+    t = Parser_NextToken(p)
     If t.kind = TK_PUNCT And t.val = prefix Then
-        Consume = True
+        Parser_Consume = True
     Else
-        Rewind p
+        Parser_Rewind p
     End If
 End Function
 
-Private Sub Expect(p As Parser, prefix As String)
-    If Not Consume(p, prefix) Then
-        ErrorAt2 p, "expected " & "'" & prefix & "'"
+Private Sub Parser_Expect(p As Parser, prefix As String)
+    If Not Parser_Consume(p, prefix) Then
+        Parser_ErrorAt2 p, "expected " & "'" & prefix & "'"
     End If
 End Sub
 
-Private Sub ErrorAt2(p As Parser, msg As String)
+Private Sub Parser_ErrorAt2(p As Parser, msg As String)
     Dim start As Long
-    If HasNext(p) Then
+    If Parser_HasNext(p) Then
         Dim t As Token
-        t = NextToken(p)
+        t = Parser_NextToken(p)
         start = t.pos - 1
     Else
         start = p.pos
@@ -543,10 +543,10 @@ End Function
 Private Function Equality(p As Parser) As Dictionary
     Dim node As Dictionary
     Set node = Relational(p)
-    Do While HasNext(p)
-        If Consume(p, "=") Then
+    Do While Parser_HasNext(p)
+        If Parser_Consume(p, "=") Then
             Set node = NewBinary(ND_EQ, node, Relational(p))
-        ElseIf Consume(p, "<>") Then
+        ElseIf Parser_Consume(p, "<>") Then
             Set node = NewBinary(ND_NE, node, Relational(p))
         Else
             Exit Do
@@ -559,14 +559,14 @@ End Function
 Private Function Relational(p As Parser) As Dictionary
     Dim node As Dictionary
     Set node = Concatenation(p)
-    Do While HasNext(p)
-        If Consume(p, "<") Then
+    Do While Parser_HasNext(p)
+        If Parser_Consume(p, "<") Then
             Set node = NewBinary(ND_LT, node, Add(p))
-        ElseIf Consume(p, "<=") Then
+        ElseIf Parser_Consume(p, "<=") Then
             Set node = NewBinary(ND_LE, node, Add(p))
-        ElseIf Consume(p, ">") Then
+        ElseIf Parser_Consume(p, ">") Then
             Set node = NewBinary(ND_GT, node, Add(p))
-        ElseIf Consume(p, ">=") Then
+        ElseIf Parser_Consume(p, ">=") Then
             Set node = NewBinary(ND_GE, node, Add(p))
         Else
             Exit Do
@@ -579,8 +579,8 @@ End Function
 Private Function Concatenation(p As Parser) As Dictionary
     Dim node As Dictionary
     Set node = Add(p)
-    Do While HasNext(p)
-        If Consume(p, "&") Then
+    Do While Parser_HasNext(p)
+        If Parser_Consume(p, "&") Then
             Set node = NewBinary(ND_CONCAT, node, Add(p))
         Else
             Exit Do
@@ -593,10 +593,10 @@ End Function
 Private Function Add(p As Parser) As Dictionary
     Dim node As Dictionary
     Set node = Mul(p)
-    Do While HasNext(p)
-        If Consume(p, "+") Then
+    Do While Parser_HasNext(p)
+        If Parser_Consume(p, "+") Then
             Set node = NewBinary(ND_ADD, node, Mul(p))
-        ElseIf Consume(p, "-") Then
+        ElseIf Parser_Consume(p, "-") Then
             Set node = NewBinary(ND_SUB, node, Mul(p))
         Else
             Exit Do
@@ -609,10 +609,10 @@ End Function
 Private Function Mul(p As Parser) As Dictionary
     Dim node As Dictionary
     Set node = Unary(p)
-    Do While HasNext(p)
-        If Consume(p, "*") Then
+    Do While Parser_HasNext(p)
+        If Parser_Consume(p, "*") Then
             Set node = NewBinary(ND_MUL, node, Unary(p))
-        ElseIf Consume(p, "/") Then
+        ElseIf Parser_Consume(p, "/") Then
             Set node = NewBinary(ND_DIV, node, Unary(p))
         Else
             Exit Do
@@ -623,9 +623,9 @@ End Function
 
 ' <unary>   ::= ("+" | "-")? <primary>
 Private Function Unary(p As Parser) As Dictionary
-    If Consume(p, "+") Then
+    If Parser_Consume(p, "+") Then
         Set Unary = Primary(p)
-    ElseIf Consume(p, "-") Then
+    ElseIf Parser_Consume(p, "-") Then
         Set Unary = NewBinary(ND_SUB, NewNum(0), Primary(p))
     Else
         Set Unary = Primary(p)
@@ -634,25 +634,25 @@ End Function
 
 ' <primary> ::= <num> | <ident> | <string> | "{" <array_rows> "}" | <funcname> "(" <args>? ")" | "(" <expr> ")" | <refs>
 Private Function Primary(p As Parser) As Dictionary
-    If Consume(p, "(") Then
+    If Parser_Consume(p, "(") Then
         Dim node As Dictionary
         Set node = Expr(p)
-        Expect p, ")"
+        Parser_Expect p, ")"
         node("enclosed") = True
         Set Primary = node
         Exit Function
     End If
 
-    If Consume(p, "{") Then
+    If Parser_Consume(p, "{") Then
         Dim r As Collection
         Set r = ArrayRows(p)
-        Expect p, "}"
+        Parser_Expect p, "}"
         Set Primary = NewArray(r)
         Exit Function
     End If
 
     Dim t As Token
-    t = NextToken(p)
+    t = Parser_NextToken(p)
 
     If t.kind = TK_NUM Then
         Set Primary = NewNum(CLng(t.val))
@@ -670,13 +670,13 @@ Private Function Primary(p As Parser) As Dictionary
     End If
 
     If t.kind = TK_FUNCNAME Then
-        Expect p, "("
+        Parser_Expect p, "("
         Dim args_ As Collection
-        If Consume(p, ")") Then
+        If Parser_Consume(p, ")") Then
             Set args_ = New Collection
         Else
             Set args_ = Args(p)
-            Expect p, ")"
+            Parser_Expect p, ")"
         End If
         Set Primary = NewFunc(CStr(t.val), args_)
         Exit Function
@@ -685,15 +685,15 @@ Private Function Primary(p As Parser) As Dictionary
     If t.kind = TK_REF Then
         Dim refs_ As Dictionary
         Set refs_ = NewRef(CStr(t.val))
-        Do While Consume(p, ":")
-            t = NextToken(p)
+        Do While Parser_Consume(p, ":")
+            t = Parser_NextToken(p)
             Set refs_ = NewBinary(ND_RANGE, refs_, NewRef(CStr(t.val)))
         Loop
         Set Primary = refs_
         Exit Function
     End If
 
-    ErrorAt2 p, "expected a number or an ident or an expression"
+    Parser_ErrorAt2 p, "expected a number or an ident or an expression"
 End Function
 
 ' <array_rows> ::= <array_row> (";" <array_row>)*
@@ -701,8 +701,8 @@ Private Function ArrayRows(p As Parser) As Collection
     Dim c As Collection
     Set c = New Collection
     c.Add ArrayRow(p)
-    Do While HasNext(p)
-        If Consume(p, ";") Then
+    Do While Parser_HasNext(p)
+        If Parser_Consume(p, ";") Then
             c.Add ArrayRow(p)
         Else
             Exit Do
@@ -716,8 +716,8 @@ Private Function ArrayRow(p As Parser) As Dictionary
     Dim c As Collection
     Set c = New Collection
     c.Add Constant(p)
-    Do While HasNext(p)
-        If Consume(p, ",") Then
+    Do While Parser_HasNext(p)
+        If Parser_Consume(p, ",") Then
             c.Add Constant(p)
         Else
             Exit Do
@@ -729,7 +729,7 @@ End Function
 ' <constant> ::= <num> | <string> | "TRUE" | "FALSE"
 Private Function Constant(p As Parser) As Dictionary
     Dim t As Token
-    t = NextToken(p)
+    t = Parser_NextToken(p)
 
     If t.kind = TK_NUM Then
         Set Constant = NewNum(CLng(t.val))
@@ -746,7 +746,7 @@ Private Function Constant(p As Parser) As Dictionary
         Exit Function
     End If
 
-    ErrorAt2 p, "expected a costant value"
+    Parser_ErrorAt2 p, "expected a costant value"
 End Function
 
 ' <args> ::= <expr> ("," <expr>?)*
@@ -754,9 +754,9 @@ Private Function Args(p As Parser) As Collection
     Dim c As Collection
     Set c = New Collection
     c.Add Expr(p)
-    Do While Consume(p, ",")
+    Do While Parser_Consume(p, ",")
         Dim t As Token
-        t = Peek(p)
+        t = Parser_Peek(p)
         If t.kind = TK_PUNCT And t.val = "," Then
             c.Add NewEmpty()
         ElseIf t.kind = TK_PUNCT And t.val = ")" Then
