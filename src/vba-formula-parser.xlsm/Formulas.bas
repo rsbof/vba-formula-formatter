@@ -4,8 +4,8 @@ Option Explicit
 Private input_ As String
 Private Type Tokenizer
     input As String
+    start As Long
     pos As Long
-    mark As Long
 End Type
 
 Public Enum TokenKind
@@ -141,24 +141,59 @@ Private Function Tokenize(s As String) As Collection
     input_ = Replace(Replace(s, vbCr, " "), vbLf, " ")
     Dim t As Tokenizer
     t.input = input_
+    t.start = 1
     t.pos = 1
-    t.mark = 0
 
     Dim toks As Collection
     Set toks = New Collection
     Do While Tokenizer_HasNext(t)
-        toks.Add Tokenizer_NextToken(t)
+        Do While Tokenizer_ConsumeAny(t, " ", vbCr, vbLf)
+            Tokenizer_Ignore t
+        Loop
+        Dim tok As Token
+        tok = Tokenizer_NextToken(t)
+        toks.Add Array(tok.kind, tok.val, tok.pos)
     Loop
 
     Set Tokenize = toks
 End Function
 
-Private Sub Tokenizer_Mark(t As Tokenizer)
-    t.mark = t.pos
+Private Sub Tokenizer_AdvanceN(t As Tokenizer, n As Long)
+    t.pos = t.pos + n
 End Sub
 
-Private Function Tokenizer_Capture(t As Tokenizer) As String
-    Tokenizer_Capture = Mid(t.input, t.mark, t.pos - t.mark)
+Private Sub Tokenizer_Advance(t As Tokenizer)
+    Tokenizer_AdvanceN t, 1
+End Sub
+
+Private Function Tokenizer_Current(t As Tokenizer) As String
+    If t.start = t.pos Then
+        Tokenizer_Current = Mid(t.input, t.start, 1)
+    Else
+        Tokenizer_Current = Mid(t.input, t.start, t.pos - t.start)
+    End If
+End Function
+
+Private Sub Tokenizer_Rewind(t As Tokenizer)
+    t.pos = t.pos - 1
+End Sub
+
+Private Function Tokenizer_Next(t As Tokenizer) As String
+    Dim c As String
+    c = Mid(t.input, t.pos, 1)
+    Tokenizer_Advance t
+
+    Tokenizer_Next = c
+End Function
+
+Private Function Tokenizer_NewToken(t As Tokenizer, kind As TokenKind) As Token
+    Dim tok As Token
+    tok.kind = kind
+    tok.val = Tokenizer_Current(t)
+    tok.pos = t.start
+    t.start = t.pos
+
+    Tokenizer_NewToken = tok
 End Function
 
 Private Function Tokenizer_HasNext(t As Tokenizer) As Boolean
@@ -169,7 +204,7 @@ Private Function Tokenizer_Consume(t As Tokenizer, prefix As String) As Boolean
     Dim n As Long
     n = Len(prefix)
     If Mid(t.input, t.pos, n) = prefix Then
-        t.pos = t.pos + n
+        Tokenizer_AdvanceN t, n
         Tokenizer_Consume = True
         Exit Function
     End If
@@ -187,98 +222,63 @@ Private Function Tokenizer_ConsumeAny(t As Tokenizer, ParamArray prefixes() As V
     Tokenizer_ConsumeAny = False
 End Function
 
-Private Sub Tokenizer_SkipWhitespaces(t As Tokenizer)
-    Do While Tokenizer_ConsumeAny(t, " ", vbCrLf, vbLf)
-    Loop
+Private Function Tokenizer_Peek(t As Tokenizer) As String
+    Dim c As String
+    c = Tokenizer_Next(t)
+    Tokenizer_Rewind t
+    Tokenizer_Peek = c
+End Function
+
+Private Sub Tokenizer_Ignore(t As Tokenizer)
+    t.start = t.pos
 End Sub
 
-Private Function Tokenizer_NextToken(t As Tokenizer) As Variant()
-    Tokenizer_SkipWhitespaces t
-    Dim c As String
-    c = Mid(t.input, t.pos, 1)
+Private Function Tokenizer_NextToken(t As Tokenizer) As Token
     Select Case True
-        Case IsNumeric(c)
-            Tokenizer_Mark t
-            Do
-                t.pos = t.pos + 1
-            Loop While IsNumeric(Mid(t.input, t.pos, 1))
-            Tokenizer_NextToken = NewToken(TK_NUM, Tokenizer_Capture(t), t.mark)
-        Case c = "+" Or c = "-" Or c = "*" Or c = "/"
-            Tokenizer_NextToken = NewToken(TK_PUNCT, c, t.pos)
-            t.pos = t.pos + 1
-        Case c = "(" Or c = ")" Or c = "{" Or c = "}"
-            Tokenizer_NextToken = NewToken(TK_PUNCT, c, t.pos)
-            t.pos = t.pos + 1
-        Case c = ","
-            Tokenizer_NextToken = NewToken(TK_PUNCT, c, t.pos)
-            t.pos = t.pos + 1
-        Case c = ";"
-            Tokenizer_NextToken = NewToken(TK_PUNCT, c, t.pos)
-            t.pos = t.pos + 1
-        Case c = ":"
-            Tokenizer_NextToken = NewToken(TK_PUNCT, c, t.pos)
-            t.pos = t.pos + 1
-        Case c = "."
-            Tokenizer_NextToken = NewToken(TK_PUNCT, c, t.pos)
-            t.pos = t.pos + 1
-        Case IsIdent(c)
-            Tokenizer_Mark t
-            Do
-                t.pos = t.pos + 1
-            Loop While IsIdent(Mid(t.input, t.pos, 1)) Or IsNumeric(Mid(t.input, t.pos, 1))
-            If Mid(t.input, t.pos, 1) = "(" Then
-                Tokenizer_NextToken = NewToken(TK_FUNCNAME, Tokenizer_Capture(t), t.mark)
+        Case IsNumeric(Tokenizer_Current(t))
+            Do While IsNumeric(Tokenizer_Next(t)): Loop
+            Tokenizer_Rewind t
+            Tokenizer_NextToken = Tokenizer_NewToken(t, TK_NUM)
+        Case IsIdent(Tokenizer_Current(t))
+            Do While IsIdent(Tokenizer_Next(t)): Loop
+            Tokenizer_Rewind t
+            If Tokenizer_Peek(t) = "(" Then
+                Tokenizer_NextToken = Tokenizer_NewToken(t, TK_FUNCNAME)
             Else
                 Dim addrOrIdent As String
-                addrOrIdent = Tokenizer_Capture(t)
+                addrOrIdent = Tokenizer_Current(t)
                 If IsAddress(addrOrIdent) Then
-                    Tokenizer_NextToken = NewToken(TK_REF, addrOrIdent, t.mark)
+                    Tokenizer_NextToken = Tokenizer_NewToken(t, TK_REF)
                 Else
-                    Tokenizer_NextToken = NewToken(TK_IDENT, addrOrIdent, t.mark)
+                    Tokenizer_NextToken = Tokenizer_NewToken(t, TK_IDENT)
                 End If
             End If
-        Case c = """"
-            Tokenizer_Mark t
+        Case Tokenizer_Consume(t, """")
             Do
-                t.pos = t.pos + 1
                 If Not Tokenizer_HasNext(t) Then
                     ErrorAt t, "unclosed string literal"
                 End If
-                If Mid(t.input, t.pos, 1) = """" Then
-                    t.pos = t.pos + 1
+                If Tokenizer_Next(t) = """" Then
                     Exit Do
                 End If
             Loop
-            Tokenizer_NextToken = NewToken(TK_STRING, Tokenizer_Capture(t), t.mark)
-        Case c = "="
-            Tokenizer_NextToken = NewToken(TK_PUNCT, c, t.pos)
-            t.pos = t.pos + 1
-        Case c = "<"
-            If Mid(t.input, t.pos + 1, 1) = ">" Or Mid(t.input, t.pos + 1, 1) = "=" Then
-                Tokenizer_NextToken = NewToken(TK_PUNCT, Mid(t.input, t.pos, 2), t.pos)
-                t.pos = t.pos + 2
-            Else
-                Tokenizer_NextToken = NewToken(TK_PUNCT, c, t.pos)
-                t.pos = t.pos + 1
-            End If
-        Case c = ">"
-            If Mid(t.input, t.pos + 1, 1) = "=" Then
-                Tokenizer_NextToken = NewToken(TK_PUNCT, Mid(t.input, t.pos, 2), t.pos)
-                t.pos = t.pos + 2
-            Else
-                Tokenizer_NextToken = NewToken(TK_PUNCT, c, t.pos)
-                t.pos = t.pos + 1
-            End If
-        Case c = "&"
-            Tokenizer_NextToken = NewToken(TK_PUNCT, "&", t.pos)
-            t.pos = t.pos + 1
+            Tokenizer_NextToken = Tokenizer_NewToken(t, TK_STRING)
+        Case Tokenizer_ConsumeAny(t, _
+                "+", "-", "*", "/", _
+                "(", ")", "{", "}", _
+                ",", ".", ";", ":", _
+                "&", _
+                "=")
+            Tokenizer_NextToken = Tokenizer_NewToken(t, TK_PUNCT)
+        Case Tokenizer_Consume(t, "<")
+            Tokenizer_ConsumeAny t, ">", "="
+            Tokenizer_NextToken = Tokenizer_NewToken(t, TK_PUNCT)
+        Case Tokenizer_Consume(t, ">")
+            Tokenizer_Consume t, "="
+            Tokenizer_NextToken = Tokenizer_NewToken(t, TK_PUNCT)
         Case Else
             ErrorAt t, "unexpected token"
     End Select
-End Function
-
-Private Function NewToken(kind As Long, val As String, col As Long) As Variant()
-    NewToken = Array(kind, val, col)
 End Function
 
 Private Function IsWhitespace(c As String) As Boolean
@@ -292,7 +292,7 @@ Private Function IsIdent(c As String) As Boolean
     End If
     Dim dec As Long
     dec = Asc(c)
-    IsIdent = (IsAlpha(c) Or c = "_" Or c = "\" Or c = ".")
+    IsIdent = (IsAlpha(c) Or IsNumeric(c) Or c = "_" Or c = "\" Or c = ".")
 End Function
 
 Private Function IsAlpha(c As String) As Boolean
