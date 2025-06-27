@@ -1,21 +1,31 @@
 <expr> ::= <equality>
-<equality> ::= <relational> ("=" <relational> | "<>" <relational>)*
-<relational> ::= <concatenation> (("<" | "<=" | ">" | ">=") <concatenation>)*
-<concatenation> ::= <add> ("&" <add>)*
-<add> ::= <mul> ("+" <mul> | "-" <mul>)*
+<equality> ::= <relational> (("=" | "<>") <relational>)*
+<relational> ::= <concat> (("<" | "<=" | ">" | ">=") <concat>)*
+<concat> ::= <add> ("&" <add>)*
+<add> ::= <mul> (("+" | "-") <mul>)*
 <mul> ::= <unary> ("*" <unary> | "/" <unary>)*
 <unary> ::= ("+" | "-")? <primary>
-<primary> ::= <num> | <ident> | <string> | "{" <array_rows> "}" | <funcname> "(" <args>? ")" | "(" <expr> ")" | <refs>
+
+<primary> ::= <num>
+| <ident>
+| <string>
+| "{" <array_rows> "}"
+| <funcname> "(" <args>? ")"
+| "(" <expr> ")"
+| <refs>
+
 <array_rows> ::= <array_row> (";" <array_row>)*
 <array_row> ::= <constant> ("," <constant>)*
 <constant> ::= <num> | <string> | "TRUE" | "FALSE"
-<string> ::= "\"" any* "\""
-<funcname> ::= <ident> ("." | <ident> | <num>)*
 <args> ::= <expr> ("," <expr>?)*
 
 <refs> ::= <ref> (":" <ref>)*
 <ref> ::= <char>{1,3} <num>
+
+<funcname> ::= <ident> ("." | <ident> | <num>)*
+<string> ::= "\"" any* "\""
 <num> ::= <digit>+
-<digit> ::= [0-9]
 <ident> ::= (<char> | "_" | "\")+
+
+<digit> ::= [0-9]
 <char> ::= ([a-z] | [A-Z])
