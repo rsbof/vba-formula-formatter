@@ -154,7 +154,7 @@ End Sub
 Private Sub RunTokenizeTest(t As Variant)
     On Error GoTo Catch
         Dim actual As String
-        actual = JsonConverter.ConvertToJson(Application.Run("Formulas.Tokenize", CStr(t(1))))
+        actual = JsonConverter.ConvertToJson(Formulas.Tokenize(CStr(t(1))))
         If actual = CStr(t(2)) Then
             Debug.Print "ok: " & t(0)
         Else

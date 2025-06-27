@@ -137,7 +137,7 @@ Private Static Property Get OperatorMap() As Dictionary
     Set OperatorMap = m
 End Property
 
-Private Function Tokenize(s As String) As Collection
+Public Function Tokenize(s As String) As Collection
     input_ = Replace(Replace(s, vbCr, " "), vbLf, " ")
     Dim t As Tokenizer
     t.input = input_
