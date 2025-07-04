@@ -74,3 +74,11 @@ debug.Print formattedFormula
 ## Features
 
 - Formula Formatting
+
+## TODO
+
+- [ ] Intersection operator (space)
+- [ ] Spilled range operator (e.g., A1#)
+- [ ] Structured References (e.g., Table1[Column1])
+- [ ] 3-D References (e.g., Sheet1:Sheet3!A1)
+- [ ] Error Constants (e.g., #N/A, #VALUE!)
